@@ -1105,7 +1105,6 @@ const mediaBlobCache = {};
 
 // ================= GITHUB API & MAGIC AUTO-LOGIN LINK =================
 function loadGitHubConfig() {
-  // 1. ตรวจสอบลิงก์เข้าสู่ระบบอัตโนมัติจาก URL Hash (#connect=...)
   if (window.location.hash && window.location.hash.startsWith("#connect=")) {
     try {
       const encoded = decodeURIComponent(window.location.hash.slice("#connect=".length));
@@ -1118,14 +1117,12 @@ function loadGitHubConfig() {
           token: parsed.token
         };
         localStorage.setItem("yt_gh_cloud_cfg", JSON.stringify(ghConfig));
-        // ซ่อนรหัสออกจากแถบ URL ด้านบนเพื่อความปลอดภัย
         history.replaceState(null, "", window.location.pathname + window.location.search);
         return;
       }
     } catch (e) {}
   }
 
-  // 2. โหลดค่าจากหน่วยความจำเบราว์เซอร์
   try {
     const saved = localStorage.getItem("yt_gh_cloud_cfg");
     if (saved) ghConfig = { ...ghConfig, ...JSON.parse(saved) };
@@ -1340,7 +1337,7 @@ async function fetchPrivateMediaBlob(mediaPath) {
   return mediaBlobCache[mediaPath];
 }
 
-// ================= INITIALIZATION (NO BLOCKING POPUP) =================
+// ================= INITIALIZATION =================
 async function initApp() {
   loadGitHubConfig();
   updateMagicLinkButtonVisibility();
@@ -1354,7 +1351,6 @@ async function initApp() {
     if (cached) {
       try { appData = JSON.parse(cached); } catch (e) {}
     }
-    // เข้าหน้าหลักทันทีโดยไม่เปิดป๊อปอัพบังหน้าจอ
     renderAll();
   }
 }
@@ -2001,7 +1997,7 @@ async function deleteStoryById(storyId) {
 }
 
 async function deleteFileFromGitHub(filePath) {
-  const getRes = await githubRequest(`${filePath}?ref=${encodeURIComponent(ghConfig.branch)}`);
+  const getRes = await githubRequest(`${filePath}?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
   if (!getRes.ok) return;
   const info = await getRes.json();
   await githubRequest(filePath, {
@@ -2157,22 +2153,43 @@ async function uploadMediaFilesToGitHub(files) {
 
     try {
       const b64 = await fileToBase64Raw(file);
-      const res = await githubRequest(repoPath, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+
+      const sendPut = async (shaVal = null) => {
+        const payload = {
           message: `Upload ${repoPath}`,
           content: b64,
           branch: ghConfig.branch
-        })
-      });
+        };
+        if (shaVal) payload.sha = shaVal;
+        return githubRequest(repoPath, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      };
+
+      let res = await sendPut(null);
+
+      // หากมีไฟล์ชื่อนี้ค้างอยู่บน GitHub แล้ว (HTTP 422) ให้ดึง sha เดิมมาเขียนทับอัตโนมัติ
+      if (res.status === 422) {
+        const checkRes = await githubRequest(`${repoPath}?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
+        if (checkRes.ok) {
+          const existingFile = await checkRes.json();
+          if (existingFile && existingFile.sha) {
+            res = await sendPut(existingFile.sha);
+          }
+        }
+      }
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || `HTTP ${res.status}`);
       }
 
       mediaBlobCache[repoPath] = { blob: file, url: URL.createObjectURL(file) };
-      story.images.push(repoPath);
+      if (!story.images.includes(repoPath)) {
+        story.images.push(repoPath);
+      }
     } catch (err) {
       alert(`อัปโหลดไฟล์ ${file.name} ไม่สำเร็จ: ${err.message}`);
     }
