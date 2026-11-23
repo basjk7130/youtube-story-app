@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบจัดการเรื่องเล่า YouTube (GitHub Cloud Sync)</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-2: #273549;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Sarabun', 'Prompt', 'Segoe UI', Tahoma, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* Header */
+  .topbar {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .status-pill {
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .status-pill.saving {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+  .status-pill.offline {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.35);
+  }
+  .top-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Buttons & Inputs */
+  .btn {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.15s;
+    font-weight: 500;
+  }
+  .btn:hover { background: #334155; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-success {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+    font-weight: 600;
+  }
+  .btn-success:hover { background: #059669; }
+  .btn-cyan {
+    background: rgba(6, 182, 212, 0.18);
+    border-color: rgba(6, 182, 212, 0.5);
+    color: #67e8f9;
+    font-weight: 600;
+  }
+  .btn-cyan:hover {
+    background: rgba(6, 182, 212, 0.32);
+    color: #fff;
+  }
+  .btn-warning {
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #fcd34d;
+    font-weight: 600;
+  }
+  .btn-danger {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+  }
+  .btn-danger:hover { background: var(--danger); color: #fff; }
+  .btn-sm { padding: 5px 10px; font-size: 13px; }
+
+  .input, .select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+  }
+  .input:focus, .select:focus { border-color: var(--primary); }
+
+  .container {
+    max-width: 1380px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  /* 7-Day Schedule Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 1100px) {
+    .schedule-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .schedule-grid { grid-template-columns: 1fr; }
+  }
+  .day-col {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    min-height: 155px;
+  }
+  .day-col.today {
+    border-color: var(--warning);
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);
+  }
+  .day-head {
+    font-weight: 700;
+    font-size: 14px;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .today-tag {
+    font-size: 11px;
+    background: var(--warning);
+    color: #000;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+  .sched-items {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .sched-chip {
+    font-size: 12px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: var(--surface);
+    border-left: 4px solid #3b82f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .sched-chip-text { word-break: break-word; }
+  .sched-chip-note {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .sched-del {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 2px;
+  }
+  .sched-del:hover { color: var(--danger); }
+
+  /* Channel Tabs */
+  .channel-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .ch-tab {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.15s;
+  }
+  .ch-tab:hover { border-color: #64748b; }
+  .ch-tab.active {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #f8fafc;
+    font-weight: 700;
+  }
+  .ch-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .ch-count {
+    font-size: 12px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.2);
+  }
+  .ch-tab.active .ch-count {
+    background: #0f172a;
+    color: #fff;
+  }
+
+  /* Filter Bar */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .search-box {
+    flex: 1;
+    min-width: 240px;
+  }
+
+  /* Story Table */
+  .story-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+  }
+  table.story-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+  .story-table th {
+    background: var(--surface-2);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .story-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    font-size: 14px;
+  }
+  .story-row {
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .story-row:hover { background: rgba(59, 130, 246, 0.08); }
+  .story-title-cell {
+    font-weight: 700;
+    font-size: 15px;
+    color: #fff;
+    margin-bottom: 3px;
+  }
+  .story-excerpt {
+    font-size: 13px;
+    color: var(--text-muted);
+    max-width: 480px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .status-badge {
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .st-draft { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+  .st-script { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+  .st-media { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+  .st-published { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+
+  /* Pagination */
+  .pagination-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .page-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .page-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+  }
+  .page-btn:hover:not(:disabled) { background: var(--surface-2); }
+  .page-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Modal Overlay */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.85);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 8px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 1280px;
+    height: 96vh;
+    max-height: 96vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+    transition: all 0.15s ease;
+  }
+  .modal-box.fullscreen {
+    max-width: 100vw;
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  .modal-box.medium {
+    max-width: 960px;
+    height: auto;
+    max-height: 92vh;
+  }
+  .modal-box.small {
+    max-width: 620px;
+    height: auto;
+    max-height: 88vh;
+  }
+  .modal-header {
+    padding: 10px 18px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .modal-body {
+    padding: 16px 20px 28px 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .modal-footer {
+    padding: 10px 18px;
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 220px 120px 1fr 180px;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  @media (max-width: 850px) {
+    .meta-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .field-label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  /* Word-Like Rich Text Editor */
+  .word-container {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  }
+  .word-toolbar {
+    background: #f1f5f9;
+    border-bottom: 1px solid #cbd5e1;
+    border-radius: 10px 10px 0 0;
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    color: #1e293b;
+    position: sticky;
+    top: -16px;
+    z-index: 15;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .tool-btn {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    color: #0f172a;
+    padding: 4px 9px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    min-width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tool-btn:hover { background: #e2e8f0; }
+  .tool-sep {
+    width: 1px;
+    height: 22px;
+    background: #cbd5e1;
+    margin: 0 3px;
+  }
+  .color-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid #94a3b8;
+    cursor: pointer;
+    padding: 0;
+  }
+  .word-editor {
+    min-height: 62vh;
+    max-height: none;
+    overflow-y: visible;
+    padding: 26px 34px;
+    background: #ffffff;
+    color: #111827;
+    font-size: 17px;
+    line-height: 1.9;
+    outline: none;
+    font-family: 'Sarabun', 'Cordia New', Tahoma, sans-serif;
+  }
+  .word-editor:empty:before {
+    content: attr(data-placeholder);
+    color: #9ca3af;
+    pointer-events: none;
+  }
+  .word-statusbar {
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    border-radius: 0 0 10px 10px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: #475569;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Media Folder Drag & Drop Zone */
+  .folder-section {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .dropzone {
+    border: 2px dashed #475569;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.15s;
+    background: rgba(30, 41, 59, 0.45);
+  }
+  .dropzone.dragover {
+    border-color: var(--success);
+    background: rgba(16, 185, 129, 0.12);
+  }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .img-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  .img-card img, .img-card video {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    display: block;
+    cursor: zoom-in;
+    background: #000;
+  }
+  .media-placeholder {
+    width: 100%;
+    height: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #0b1120;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    gap: 4px;
+  }
+  .media-type-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(15, 23, 42, 0.85);
+    color: #38bdf8;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    pointer-events: none;
+  }
+  .img-card-foot {
+    padding: 5px 7px;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+  }
+  .img-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Lightbox */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.92);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 20px;
+    cursor: zoom-out;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img, .lightbox video {
+    max-width: 95vw;
+    max-height: 92vh;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    cursor: default;
+  }
+
+  .ch-manage-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .batch-tag-jfif {
+    display: inline-block;
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+  }
+  .batch-new-name {
+    color: #34d399;
+    font-weight: 700;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<header class="topbar">
+  <div class="brand">
+    <h1>🎙️ ระบบจัดการเรื่องเล่า YouTube</h1>
+    <span id="saveStatus" class="status-pill offline">🔴 ยังไม่ได้เชื่อมต่อ GitHub</span>
+  </div>
+  <div class="top-actions">
+    <button class="btn btn-warning" onclick="openGitHubConfigModal()">☁️ เชื่อมต่อ GitHub</button>
+    <button class="btn" onclick="syncFromGitHub(true)">🔄 ดึงข้อมูลล่าสุด</button>
+    <button class="btn btn-cyan" onclick="openBatchToolModal()">📦 แปลงไฟล์ & เรียงชื่อ (.ZIP)</button>
+    <button class="btn" onclick="toggleSchedule()">📅 ตาราง 7 วัน</button>
+    <button class="btn" onclick="openChannelModal()">⚙️ จัดการช่อง</button>
+    <button class="btn btn-primary" onclick="openStoryModal(null)">➕ เพิ่มเรื่องใหม่</button>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- 7-Day Weekly Schedule -->
+  <section id="scheduleSection" class="card">
+    <div class="card-header">
+      <h2 class="card-title">📅 ตารางลงคลิปประจำสัปดาห์ (7 วัน)</h2>
+      <span style="font-size:12px; color:var(--text-muted);">* บันทึกขึ้น GitHub Private Repo อัตโนมัติ</span>
+    </div>
+    <div id="scheduleGrid" class="schedule-grid"></div>
+  </section>
+
+  <!-- Story List & Channels -->
+  <section class="card">
+    <div id="channelTabs" class="channel-tabs"></div>
+
+    <div class="filter-bar">
+      <input id="searchInput" class="input search-box" type="text" placeholder="🔍 ค้นหาชื่อเรื่อง, ตอนที่ (EP), หรือข้อความในเนื้อเรื่อง..." oninput="resetPageAndRender()">
+      <select id="statusFilter" class="select" onchange="resetPageAndRender()">
+        <option value="ALL">📌 ทุกสถานะงาน</option>
+        <option value="ร่างไอเดีย">📝 ร่างไอเดีย</option>
+        <option value="เขียนบทเสร็จ">✍️ เขียนบทเสร็จ</option>
+        <option value="ทำภาพ/เสียงแล้ว">🎬 ทำภาพ/เสียงแล้ว</option>
+        <option value="ลงยูทูปแล้ว">✅ ลงยูทูปแล้ว</option>
+      </select>
+      <button class="btn btn-primary" onclick="openStoryModal(null)">➕ เพิ่มเรื่องใหม่ในช่องนี้</button>
+    </div>
+
+    <div class="story-table-wrap">
+      <table class="story-table">
+        <thead>
+          <tr>
+            <th style="width:75px;">ตอน / EP</th>
+            <th>ชื่อเรื่อง & ตัวอย่างเนื้อเรื่อง</th>
+            <th style="width:190px;">ช่อง YouTube</th>
+            <th style="width:140px;">สถานะ</th>
+            <th style="width:135px;">ไฟล์สื่อ</th>
+            <th style="width:130px;">อัปเดตล่าสุด</th>
+            <th style="width:145px; text-align:right;">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="storyTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="pagination-bar">
+      <div id="paginationInfo" style="font-size:13px; color:var(--text-muted);"></div>
+      <div id="paginationButtons" class="page-buttons"></div>
+    </div>
+  </section>
+</main>
+
+<!-- GitHub Cloud Connection Modal -->
+<div id="githubConfigModal" class="modal-backdrop">
+  <div class="modal-box small">
+    <div class="modal-header">
+      <strong style="font-size:16px;">☁️ ตั้งค่าเชื่อมต่อ GitHub Private Repository</strong>
+      <button class="btn btn-sm" onclick="closeGitHubConfigModal()">✖ ปิด</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px; color:var(--text-muted); margin-top:0;">
+        กรอกข้อมูล Repository ส่วนตัว (Private) ที่ใช้เก็บฐานข้อมูลและไฟล์รูป/วีดีโอ ทำเพียงเครื่องละ 1 ครั้ง (ที่ทำงาน 1 ครั้ง / ที่บ้าน 1 ครั้ง)
+      </p>
+      <div style="margin-bottom:12px;">
+        <label class="field-label">1. ชื่อผู้ใช้ GitHub (Username)</label>
+        <input id="ghOwnerInput" class="input" type="text" style="width:100%;" placeholder="เช่น basbpg">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label class="field-label">2. ชื่อ Repository สำหรับเก็บข้อมูล (ต้องเป็น Private)</label>
+        <input id="ghRepoInput" class="input" type="text" style="width:100%;" placeholder="เช่น my-youtube-data">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label class="field-label">3. Branch (ค่าเริ่มต้นคือ main)</label>
+        <input id="ghBranchInput" class="input" type="text" style="width:100%;" value="main">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label class="field-label">4. GitHub Personal Access Token (สิทธิ์ Contents: Read and write)</label>
+        <input id="ghTokenInput" class="input" type="password" style="width:100%;" placeholder="github_pat_xxxxxxxxxxxx">
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <button type="button" class="btn btn-danger btn-sm" onclick="disconnectGitHub()">ล้างค่าเชื่อมต่อ</button>
+        <button type="button" class="btn btn-success" onclick="saveGitHubConfig()">💾 บันทึกและเชื่อมต่อทันที</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Standalone Batch Converter & Renamer Modal -->
+<div id="batchToolModal" class="modal-backdrop">
+  <div class="modal-box medium">
+    <div class="modal-header">
+      <div>
+        <strong style="font-size:17px;">🔄 แปลงนามสกุล (.jfif → .jpg) & เรียงชื่อไฟล์ 1, 2, 3... (.ZIP)</strong>
+        <div style="font-size:12px; color:#67e8f9;">ทำงานแยกอิสระจากฐานข้อมูลเรื่องเล่า — ใช้จัดการโฟลเดอร์ไฟล์แล้วโหลด .ZIP ออกไปใช้งานได้ทันที</div>
+      </div>
+      <button class="btn btn-sm" onclick="closeBatchToolModal()">✖ ปิดหน้าต่าง</button>
+    </div>
+
+    <div class="modal-body">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px;">
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('batchFolderInput').click()">📂 เลือกทั้งโฟลเดอร์</button>
+          <button type="button" class="btn btn-sm" onclick="document.getElementById('batchFilesInput').click()">🖼️🎬 เลือกหลายไฟล์</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="clearBatchFiles()">🗑️ ล้างรายการ</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <label style="font-size:13px; color:var(--text-muted);">ชื่อไฟล์ ZIP:</label>
+          <input id="batchZipName" class="input" type="text" style="width:200px; padding:5px 10px;" value="renamed_media">
+          <span style="font-size:13px; color:var(--text-muted);">.zip</span>
+        </div>
+      </div>
+
+      <input type="file" id="batchFolderInput" webkitdirectory directory multiple style="display:none" onchange="handleBatchInputSelect(this.files)">
+      <input type="file" id="batchFilesInput" accept="image/*,video/*,.jfif,.mkv,.avi,.mov,.webm" multiple style="display:none" onchange="handleBatchInputSelect(this.files)">
+
+      <div id="batchDropzone" class="dropzone" style="margin-bottom:14px;">
+        <div style="font-size:16px; font-weight:700; margin-bottom:4px;">📥 ลาก "โฟลเดอร์รูปภาพ / วีดีโอ" หรือ "ไฟล์" มาวางที่นี่ได้เลย</div>
+        <div style="font-size:12px; color:var(--text-muted);">
+          1) แปลง <b>.jfif → .jpg</b> อัตโนมัติ &nbsp;|&nbsp;
+          2) เรียงวันที่ <b>เก่าสุดเป็น 1 → ไฟล์ล่าสุด</b> (1.jpg, 2.jpg, 3.mp4...) &nbsp;|&nbsp;
+          3) โหลดกลับเป็น <b>.ZIP</b>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span id="batchSummaryText" style="font-size:13px; color:var(--text-muted);">ยังไม่มีไฟล์ในรายการ</span>
+        <button type="button" id="batchDownloadBtn" class="btn btn-success" onclick="downloadBatchZip()" disabled>📦 โหลดออกมาทั้งโฟลเดอร์ (.ZIP)</button>
+      </div>
+
+      <div class="story-table-wrap" style="max-height:360px; overflow-y:auto;">
+        <table class="story-table">
+          <thead>
+            <tr>
+              <th style="width:70px;">ลำดับ</th>
+              <th>ชื่อไฟล์ใหม่ที่จะได้</th>
+              <th>ชื่อไฟล์เดิม</th>
+              <th style="width:170px;">วันที่ไฟล์ (เก่า → ใหม่)</th>
+              <th style="width:95px;">ขนาด</th>
+              <th style="width:60px; text-align:right;">ลบ</th>
+            </tr>
+          </thead>
+          <tbody id="batchTableBody">
+            <tr>
+              <td colspan="6" style="text-align:center; padding:28px; color:var(--text-muted);">รอรับโฟลเดอร์รูปภาพหรือวีดีโอ...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span style="font-size:12px; color:var(--text-muted);">* ระบบเรียงลำดับจากวันที่แก้ไขไฟล์เก่าที่สุดเป็นหมายเลข 1 เสมอ</span>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn" onclick="closeBatchToolModal()">ปิดหน้าต่าง</button>
+        <button type="button" id="batchDownloadBtnFooter" class="btn btn-success" onclick="downloadBatchZip()" disabled>📦 โหลดออกมาทั้งโฟลเดอร์ (.ZIP)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Full-Detail Story Popup Modal -->
+<div id="storyModal" class="modal-backdrop">
+  <div id="storyModalBox" class="modal-box">
+    <div class="modal-header">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <strong id="modalHeaderTitle" style="font-size:17px;">📖 รายละเอียด & แก้ไขเรื่องเล่า</strong>
+        <span id="modalAutoSaveHint" style="font-size:12px; color:#34d399;">✓ ซิงก์ขึ้น GitHub อัตโนมัติ</span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="fullscreenToggleBtn" class="btn btn-sm" onclick="toggleStoryFullscreen()">⛶ ขยายเต็มจอ</button>
+        <button class="btn btn-success btn-sm" onclick="saveCurrentStoryAndNotify()">☁️ บันทึกขึ้น GitHub ทันที</button>
+        <button class="btn btn-sm" onclick="closeStoryModal()">✖ ปิดหน้าต่าง</button>
+      </div>
+    </div>
+
+    <div id="storyModalBody" class="modal-body">
+      <div class="meta-grid">
+        <div>
+          <label class="field-label">ช่อง YouTube</label>
+          <select id="editChannelId" class="select" style="width:100%;" onchange="triggerStoryAutoSave()"></select>
+        </div>
+        <div>
+          <label class="field-label">ตอนที่ (EP)</label>
+          <input id="editEpisode" class="input" type="text" style="width:100%;" placeholder="เช่น EP.01" oninput="triggerStoryAutoSave()">
+        </div>
+        <div>
+          <label class="field-label">ชื่อเรื่อง</label>
+          <input id="editTitle" class="input" type="text" style="width:100%; font-weight:700;" placeholder="พิมพ์ชื่อเรื่องเล่า..." oninput="triggerStoryAutoSave()">
+        </div>
+        <div>
+          <label class="field-label">สถานะการผลิต</label>
+          <select id="editStatus" class="select" style="width:100%;" onchange="triggerStoryAutoSave()">
+            <option value="ร่างไอเดีย">📝 ร่างไอเดีย</option>
+            <option value="เขียนบทเสร็จ">✍️ เขียนบทเสร็จ</option>
+            <option value="ทำภาพ/เสียงแล้ว">🎬 ทำภาพ/เสียงแล้ว</option>
+            <option value="ลงยูทูปแล้ว">✅ ลงยูทูปแล้ว</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Word-Style Rich Text Editor -->
+      <label class="field-label">เนื้อเรื่องฉบับเต็ม (รูปแบบเหมือน Word: ทำตัวหนา เปลี่ยนสีตัวอักษร ไฮไลต์สีได้เต็มรูปแบบ)</label>
+      <div class="word-container">
+        <div class="word-toolbar">
+          <button type="button" class="tool-btn" title="ตัวหนา (Ctrl+B)" onclick="execCmd('bold')"><b>B</b></button>
+          <button type="button" class="tool-btn" title="ตัวเอียง (Ctrl+I)" onclick="execCmd('italic')"><i>I</i></button>
+          <button type="button" class="tool-btn" title="ขีดเส้นใต้ (Ctrl+U)" onclick="execCmd('underline')"><u>U</u></button>
+          <button type="button" class="tool-btn" title="ขีดฆ่า" onclick="execCmd('strikeThrough')"><s>S</s></button>
+
+          <div class="tool-sep"></div>
+
+          <span style="font-size:12px; font-weight:600;">สีตัวอักษร:</span>
+          <input type="color" id="fontColorPicker" class="color-swatch" value="#dc2626" title="เลือกสีตัวอักษรเอง" onchange="execCmd('foreColor', this.value)">
+          <button type="button" class="color-swatch" style="background:#111827;" title="สีดำ" onclick="execCmd('foreColor', '#111827')"></button>
+          <button type="button" class="color-swatch" style="background:#dc2626;" title="สีแดง" onclick="execCmd('foreColor', '#dc2626')"></button>
+          <button type="button" class="color-swatch" style="background:#2563eb;" title="สีน้ำเงิน" onclick="execCmd('foreColor', '#2563eb')"></button>
+          <button type="button" class="color-swatch" style="background:#059669;" title="สีเขียว" onclick="execCmd('foreColor', '#059669')"></button>
+          <button type="button" class="color-swatch" style="background:#d97706;" title="สีส้ม" onclick="execCmd('foreColor', '#d97706')"></button>
+          <button type="button" class="color-swatch" style="background:#7c3aed;" title="สีม่วง" onclick="execCmd('foreColor', '#7c3aed')"></button>
+
+          <div class="tool-sep"></div>
+
+          <span style="font-size:12px; font-weight:600;">ไฮไลต์:</span>
+          <button type="button" class="color-swatch" style="background:#fef08a;" title="ไฮไลต์เหลือง" onclick="execCmd('hiliteColor', '#fef08a')"></button>
+          <button type="button" class="color-swatch" style="background:#bbf7d0;" title="ไฮไลต์เขียว" onclick="execCmd('hiliteColor', '#bbf7d0')"></button>
+          <button type="button" class="color-swatch" style="background:#fecaca;" title="ไฮไลต์ชมพู/แดง" onclick="execCmd('hiliteColor', '#fecaca')"></button>
+          <button type="button" class="tool-btn" title="เอาสีไฮไลต์ออก" onclick="execCmd('hiliteColor', 'transparent')">ไม่มีไฮไลต์</button>
+
+          <div class="tool-sep"></div>
+
+          <select class="select" style="padding:3px 6px; height:30px; background:#fff; color:#0f172a; border-color:#cbd5e1;" onchange="if(this.value){execCmd('fontSize', this.value); this.value='';}">
+            <option value="">ขนาดตัวอักษร...</option>
+            <option value="2">เล็ก</option>
+            <option value="3">ปกติ (มาตรฐาน)</option>
+            <option value="4">กลาง</option>
+            <option value="5">ใหญ่</option>
+            <option value="6">หัวข้อใหญ่</option>
+          </select>
+
+          <button type="button" class="tool-btn" title="ชิดซ้าย" onclick="execCmd('justifyLeft')">⬅</button>
+          <button type="button" class="tool-btn" title="กึ่งกลาง" onclick="execCmd('justifyCenter')">↔</button>
+          <button type="button" class="tool-btn" title="ชิดขวา" onclick="execCmd('justifyRight')">➡</button>
+          <button type="button" class="tool-btn" title="ล้างการจัดรูปแบบทั้งหมด" onclick="execCmd('removeFormat')">ล้างสี/ตัวหนา</button>
+          <button type="button" class="tool-btn" style="margin-left:auto; background:#e0f2fe; border-color:#7dd3fc; color:#0369a1;" onclick="copyStoryPlainText()">📋 คัดลอกเนื้อเรื่อง</button>
+        </div>
+
+        <div id="wordEditor" class="word-editor" contenteditable="true"
+             data-placeholder="พิมพ์หรือวางเนื้อเรื่องยาวๆ ที่นี่ได้เลย... ระบบจะบันทึกขึ้น GitHub อัตโนมัติ"
+             oninput="onEditorInput()"></div>
+
+        <div class="word-statusbar">
+          <span id="wordCountLabel">จำนวนตัวอักษร: 0 ตัวอักษร</span>
+          <span>ซิงก์เนื้อหาและสีตัวอักษรขึ้น GitHub Private Repo อัตโนมัติ</span>
+        </div>
+      </div>
+
+      <!-- Cloud Media Folder Drag & Drop -->
+      <div class="folder-section">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+          <strong style="font-size:15px;">☁️ โฟลเดอร์รูปภาพ & วีดีโอบน GitHub (<span id="storyImageCount">0 ไฟล์</span>)</strong>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <button type="button" class="btn btn-sm" onclick="document.getElementById('folderPickerInput').click()">📂 เลือกทั้งโฟลเดอร์</button>
+            <button type="button" class="btn btn-sm" onclick="document.getElementById('filesPickerInput').click()">🖼️🎬 เลือกไฟล์รูป/วีดีโอ</button>
+            <button type="button" id="storyZipBtn" class="btn btn-success btn-sm" onclick="downloadStoryMediaZip()">📦 โหลดออกมาทั้งโฟลเดอร์ (.ZIP)</button>
+          </div>
+        </div>
+
+        <input type="file" id="folderPickerInput" webkitdirectory directory multiple style="display:none" onchange="handleManualFileSelect(this.files)">
+        <input type="file" id="filesPickerInput" accept="image/*,video/*,.jfif,.mkv,.avi,.mov,.webm" multiple style="display:none" onchange="handleManualFileSelect(this.files)">
+
+        <div id="imageDropzone" class="dropzone">
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">📥 ลาก "โฟลเดอร์รูปภาพ / วีดีโอ" หรือ "ไฟล์" มาวางในกรอบนี้ได้เลย</div>
+          <div style="font-size:12px; color:var(--text-muted);">
+            อัปโหลดขึ้น GitHub อัตโนมัติ • แปลง <b>.jfif → .jpg</b> • ตั้งชื่อ <b>1, 2, 3, 4... ตามวันที่ (เก่าสุดเป็น 1)</b> • ขนาดไม่เกิน 50 MB/ไฟล์
+          </div>
+        </div>
+
+        <div id="storyGalleryGrid" class="gallery-grid"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" id="modalDeleteBtn" class="btn btn-danger" onclick="deleteCurrentStoryFromModal()">🗑️ ลบเรื่องนี้ทิ้ง</button>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn" onclick="closeStoryModal()">ปิดหน้าต่าง</button>
+        <button type="button" class="btn btn-success" onclick="saveCurrentStoryAndNotify()">☁️ บันทึกขึ้น GitHub</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Channel Management Modal -->
+<div id="channelModal" class="modal-backdrop">
+  <div class="modal-box small">
+    <div class="modal-header">
+      <strong style="font-size:16px;">⚙️ จัดการรายชื่อช่อง YouTube (เพิ่ม / แก้ไข / ลบ)</strong>
+      <button class="btn btn-sm" onclick="closeChannelModal()">✖ ปิด</button>
+    </div>
+    <div class="modal-body">
+      <div id="channelManageList"></div>
+      <hr style="border-color:var(--border); margin:14px 0;">
+      <label class="field-label">➕ เพิ่มช่อง YouTube ใหม่</label>
+      <div style="display:flex; gap:8px;">
+        <input id="newChannelColor" type="color" value="#06b6d4" style="width:44px; height:38px; border:none; background:none; cursor:pointer;">
+        <input id="newChannelName" class="input" type="text" style="flex:1;" placeholder="พิมพ์ชื่อช่องใหม่...">
+        <button class="btn btn-primary" onclick="addChannel()">เพิ่มช่อง</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule Add Channel Modal -->
+<div id="schedModal" class="modal-backdrop">
+  <div class="modal-box small">
+    <div class="modal-header">
+      <strong id="schedModalTitle" style="font-size:16px;">📅 เพิ่มช่องลงตารางวัน</strong>
+      <button class="btn btn-sm" onclick="closeSchedModal()">✖ ปิด</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:12px;">
+        <label class="field-label">เลือกช่อง YouTube ที่ต้องการลงคลิป</label>
+        <select id="schedChannelSelect" class="select" style="width:100%;"></select>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label class="field-label">เวลาลงคลิป / หมายเหตุ (ไม่บังคับ)</label>
+        <input id="schedNoteInput" class="input" type="text" style="width:100%;" placeholder="เช่น 19:00 น. หรือ ลง 2 ตอน">
+      </div>
+      <div style="text-align:right;">
+        <button class="btn btn-primary" onclick="confirmAddSchedule()">บันทึกเข้าตาราง</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen Media Lightbox -->
+<div id="lightbox" class="lightbox" onclick="closeLightbox(event)">
+  <img id="lightboxImg" src="" alt="Preview" style="display:none;">
+  <video id="lightboxVideo" src="" controls autoplay style="display:none;"></video>
+</div>
+
+<script>
+const DAYS_7 = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
+const PAGE_SIZE = 10;
+const MAX_GITHUB_FILE_BYTES = 50 * 1024 * 1024; // 50 MB limit per single file via browser API
+
+const DEFAULT_DATA = {
+  channels: [
+    { id: "ch_1", name: "1. คืนลี้ลับ เดลิเวอร์รี่", color: "#ef4444" },
+    { id: "ch_2", name: "2. ตานี มีเรื่องเล่า", color: "#10b981" },
+    { id: "ch_3", name: "3. เรื่องสั้น ฟังสบาย", color: "#3b82f6" },
+    { id: "ch_4", name: "4. เรื่องสั้น วันเหงา", color: "#8b5cf6" },
+    { id: "ch_5", name: "5. เหตุแห่งกรรม", color: "#f59e0b" },
+    { id: "ch_6", name: "6. ช่องเรื่องเล่า 6 (แก้ไขชื่อได้)", color: "#ec4899" }
+  ],
+  schedule: {
+    "จันทร์": [{ channelId: "ch_1", note: "19:00 น." }],
+    "อังคาร": [{ channelId: "ch_2", note: "19:00 น." }],
+    "พุธ": [{ channelId: "ch_3", note: "18:00 น." }],
+    "พฤหัสบดี": [{ channelId: "ch_4", note: "20:00 น." }],
+    "ศุกร์": [{ channelId: "ch_5", note: "19:00 น." }],
+    "เสาร์": [{ channelId: "ch_1", note: "19:00 น." }, { channelId: "ch_2", note: "20:30 น." }],
+    "อาทิตย์": [{ channelId: "ch_5", note: "18:30 น." }, { channelId: "ch_6", note: "20:00 น." }]
+  },
+  stories: []
+};
+
+let ghConfig = { owner: "", repo: "", branch: "main", token: "" };
+let currentJsonSha = null;
+let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+
+let selectedChannelFilter = "ALL";
+let currentPage = 1;
+let activeStoryId = null;
+let autoSaveTimer = null;
+let activeSchedDay = null;
+let batchQueuedFiles = [];
+const mediaBlobCache = {}; // path -> { blob, url }
+
+// ================= GITHUB API ENGINE =================
+function loadGitHubConfig() {
+  try {
+    const saved = localStorage.getItem("yt_gh_cloud_cfg");
+    if (saved) ghConfig = { ...ghConfig, ...JSON.parse(saved) };
+  } catch (e) {}
+}
+
+function isGitHubConfigured() {
+  return Boolean(ghConfig.owner && ghConfig.repo && ghConfig.token);
+}
+
+function openGitHubConfigModal() {
+  document.getElementById("ghOwnerInput").value = ghConfig.owner || "";
+  document.getElementById("ghRepoInput").value = ghConfig.repo || "";
+  document.getElementById("ghBranchInput").value = ghConfig.branch || "main";
+  document.getElementById("ghTokenInput").value = ghConfig.token || "";
+  document.getElementById("githubConfigModal").classList.add("open");
+}
+
+function closeGitHubConfigModal() {
+  document.getElementById("githubConfigModal").classList.remove("open");
+}
+
+async function saveGitHubConfig() {
+  ghConfig.owner = document.getElementById("ghOwnerInput").value.trim();
+  ghConfig.repo = document.getElementById("ghRepoInput").value.trim();
+  ghConfig.branch = document.getElementById("ghBranchInput").value.trim() || "main";
+  ghConfig.token = document.getElementById("ghTokenInput").value.trim();
+
+  if (!isGitHubConfigured()) {
+    alert("กรุณากรอก Username, ชื่อ Repository และ Token ให้ครบครับ");
+    return;
+  }
+  localStorage.setItem("yt_gh_cloud_cfg", JSON.stringify(ghConfig));
+  closeGitHubConfigModal();
+  await syncFromGitHub(true);
+}
+
+function disconnectGitHub() {
+  localStorage.removeItem("yt_gh_cloud_cfg");
+  ghConfig = { owner: "", repo: "", branch: "main", token: "" };
+  currentJsonSha = null;
+  setSaveStatus("offline", "🔴 ยกเลิกการเชื่อมต่อ GitHub แล้ว");
+  closeGitHubConfigModal();
+}
+
+function utf8ToBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function base64ToUtf8(b64) {
+  const binary = atob(b64.replace(/\s/g, ""));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
+function fileToBase64Raw(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const res = String(reader.result || "");
+      resolve(res.includes(",") ? res.split(",")[1] : res);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function githubRequest(path, options = {}) {
+  const url = `https://api.github.com/repos/${encodeURIComponent(ghConfig.owner)}/${encodeURIComponent(ghConfig.repo)}/contents/${path}`;
+  const headers = {
+    "Authorization": `Bearer ${ghConfig.token}`,
+    "Accept": "application/vnd.github+json",
+    ...(options.headers || {})
+  };
+  return fetch(url, { ...options, headers, cache: "no-store" });
+}
+
+async function syncFromGitHub(showAlertOnSuccess = false) {
+  if (!isGitHubConfigured()) {
+    setSaveStatus("offline", "🔴 กดปุ่ม '☁️ เชื่อมต่อ GitHub' เพื่อซิงก์ออนไลน์");
+    renderAll();
+    return;
+  }
+
+  setSaveStatus("saving", "⏳ กำลังดึงข้อมูลจาก GitHub...");
+  try {
+    const res = await githubRequest(`stories_data.json?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
+    if (res.status === 404) {
+      // สร้างไฟล์ stories_data.json เริ่มต้นบน GitHub ให้อัตโนมัติ
+      currentJsonSha = null;
+      await persistData();
+      renderAll();
+      if (showAlertOnSuccess) alert("เชื่อมต่อสำเร็จ! สร้างฐานข้อมูลใหม่บน GitHub เรียบร้อยแล้วครับ");
+      return;
+    }
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.message || `HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    currentJsonSha = json.sha;
+    const decoded = base64ToUtf8(json.content || "");
+    const parsed = JSON.parse(decoded);
+
+    appData = {
+      channels: parsed.channels || DEFAULT_DATA.channels,
+      schedule: parsed.schedule || DEFAULT_DATA.schedule,
+      stories: parsed.stories || []
+    };
+
+    setSaveStatus("saved", `🟢 ซิงก์ GitHub แล้ว (${ghConfig.repo})`);
+    renderAll();
+    if (activeStoryId) {
+      const st = appData.stories.find(s => s.id === activeStoryId);
+      if (st) renderStoryGallery(st);
+    }
+    if (showAlertOnSuccess) alert("ดึงข้อมูลล่าสุดจาก GitHub เรียบร้อยแล้ว!");
+  } catch (err) {
+    setSaveStatus("offline", "🔴 เชื่อมต่อ GitHub ไม่สำเร็จ");
+    alert("ไม่สามารถเชื่อมต่อ GitHub ได้: " + err.message + "\nกรุณาตรวจสอบ Username, ชื่อ Repo และ Token อีกครั้ง");
+  }
+}
+
+async function persistData() {
+  localStorage.setItem("yt_story_cloud_cache", JSON.stringify(appData));
+  if (!isGitHubConfigured()) {
+    setSaveStatus("offline", "🔴 ยังไม่ได้เชื่อมต่อ GitHub (บันทึกชั่วคราวในเครื่อง)");
+    return;
+  }
+
+  setSaveStatus("saving", "⏳ กำลังบันทึกขึ้น GitHub...");
+  const encodedContent = utf8ToBase64(JSON.stringify(appData, null, 2));
+
+  const putJson = async (shaVal) => {
+    const body = {
+      message: `Update stories_data.json (${new Date().toISOString()})`,
+      content: encodedContent,
+      branch: ghConfig.branch
+    };
+    if (shaVal) body.sha = shaVal;
+    return githubRequest("stories_data.json", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+  };
+
+  try {
+    let res = await putJson(currentJsonSha);
+    if (res.status === 409 || res.status === 422) {
+      // ดึง SHA ล่าสุดแล้วลองบันทึกซ้ำอัตโนมัติ
+      const latest = await githubRequest(`stories_data.json?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
+      if (latest.ok) {
+        const latestJson = await latest.json();
+        currentJsonSha = latestJson.sha;
+        res = await putJson(currentJsonSha);
+      }
+    }
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || `HTTP ${res.status}`);
+    }
+    const saved = await res.json();
+    currentJsonSha = saved.content && saved.content.sha ? saved.content.sha : currentJsonSha;
+    setSaveStatus("saved", "🟢 บันทึกขึ้น GitHub เรียบร้อย");
+    const hint = document.getElementById("modalAutoSaveHint");
+    if (hint) hint.textContent = "✓ บันทึกขึ้น GitHub แล้ว (" + new Date().toLocaleTimeString("th-TH") + ")";
+  } catch (err) {
+    setSaveStatus("offline", "⚠️ บันทึกขึ้น GitHub ขัดข้อง");
+    console.error(err);
+  }
+}
+
+async function fetchPrivateMediaBlob(mediaPath) {
+  if (mediaBlobCache[mediaPath]) {
+    return mediaBlobCache[mediaPath];
+  }
+  const res = await githubRequest(`${mediaPath}?ref=${encodeURIComponent(ghConfig.branch)}`, {
+    headers: { "Accept": "application/vnd.github.raw" }
+  });
+  if (!res.ok) throw new Error(`โหลดไฟล์ ${mediaPath} ไม่สำเร็จ`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  mediaBlobCache[mediaPath] = { blob, url };
+  return mediaBlobCache[mediaPath];
+}
+
+// ================= INITIALIZATION =================
+async function initApp() {
+  loadGitHubConfig();
+  setupDropzone();
+  setupBatchDropzone();
+
+  if (isGitHubConfigured()) {
+    await syncFromGitHub(false);
+  } else {
+    const cached = localStorage.getItem("yt_story_cloud_cache");
+    if (cached) {
+      try { appData = JSON.parse(cached); } catch (e) {}
+    }
+    renderAll();
+    openGitHubConfigModal();
+  }
+}
+
+function setSaveStatus(state, text) {
+  const el = document.getElementById("saveStatus");
+  el.className = "status-pill" + (state === "saving" ? " saving" : state === "offline" ? " offline" : "");
+  el.textContent = text;
+}
+
+function renderAll() {
+  renderSchedule();
+  renderChannelTabs();
+  renderStoriesTable();
+}
+
+// ================= STANDALONE BATCH RENAMER & .JFIF -> .JPG (.ZIP) =================
+function openBatchToolModal() {
+  document.getElementById("batchToolModal").classList.add("open");
+}
+
+function closeBatchToolModal() {
+  document.getElementById("batchToolModal").classList.remove("open");
+}
+
+function setupBatchDropzone() {
+  const dz = document.getElementById("batchDropzone");
+  dz.addEventListener("dragover", e => {
+    e.preventDefault();
+    dz.classList.add("dragover");
+  });
+  dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
+  dz.addEventListener("drop", async e => {
+    e.preventDefault();
+    dz.classList.remove("dragover");
+
+    const items = e.dataTransfer.items;
+    const collectedFiles = [];
+    let folderName = "";
+
+    if (items && items.length > 0 && items[0].webkitGetAsEntry) {
+      const entries = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry();
+        if (entry) {
+          if (entry.isDirectory && !folderName) folderName = entry.name;
+          entries.push(entry);
+        }
+      }
+      for (const entry of entries) {
+        await traverseFileTree(entry, collectedFiles);
+      }
+    } else if (e.dataTransfer.files) {
+      for (const f of e.dataTransfer.files) {
+        if (isMediaFile(f.name)) collectedFiles.push(f);
+      }
+    }
+
+    if (collectedFiles.length > 0) {
+      if (folderName) document.getElementById("batchZipName").value = folderName;
+      addFilesToBatchQueue(collectedFiles);
+    } else {
+      alert("ไม่พบไฟล์รูปภาพหรือวีดีโอที่รองรับในโฟลเดอร์ที่ลากมาวาง");
+    }
+  });
+}
+
+function handleBatchInputSelect(fileListObj) {
+  const files = Array.from(fileListObj).filter(f => isMediaFile(f.name));
+  if (files.length > 0) {
+    if (files[0].webkitRelativePath) {
+      const topFolder = files[0].webkitRelativePath.split("/")[0];
+      if (topFolder) document.getElementById("batchZipName").value = topFolder;
+    }
+    addFilesToBatchQueue(files);
+  }
+}
+
+function addFilesToBatchQueue(newFiles) {
+  batchQueuedFiles.push(...newFiles);
+  batchQueuedFiles.sort((a, b) => {
+    if (a.lastModified !== b.lastModified) return a.lastModified - b.lastModified;
+    return a.name.localeCompare(b.name, undefined, { numeric: true });
+  });
+  renderBatchPreviewTable();
+}
+
+function removeBatchFileAt(idx) {
+  batchQueuedFiles.splice(idx, 1);
+  renderBatchPreviewTable();
+}
+
+function clearBatchFiles() {
+  batchQueuedFiles = [];
+  document.getElementById("batchFolderInput").value = "";
+  document.getElementById("batchFilesInput").value = "";
+  renderBatchPreviewTable();
+}
+
+function getConvertedExtension(filename) {
+  const dotIdx = filename.lastIndexOf(".");
+  if (dotIdx === -1) return ".jpg";
+  const ext = filename.slice(dotIdx).toLowerCase();
+  return ext === ".jfif" ? ".jpg" : ext;
+}
+
+function renderBatchPreviewTable() {
+  const tbody = document.getElementById("batchTableBody");
+  const summary = document.getElementById("batchSummaryText");
+  const btnTop = document.getElementById("batchDownloadBtn");
+  const btnFoot = document.getElementById("batchDownloadBtnFooter");
+
+  if (batchQueuedFiles.length === 0) {
+    summary.textContent = "ยังไม่มีไฟล์ในรายการ";
+    btnTop.disabled = true;
+    btnFoot.disabled = true;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:28px; color:var(--text-muted);">รอรับโฟลเดอร์รูปภาพหรือวีดีโอ...</td></tr>`;
+    return;
+  }
+
+  let jfifCount = 0;
+  let vidCount = 0;
+
+  tbody.innerHTML = batchQueuedFiles.map((file, idx) => {
+    const seq = idx + 1;
+    const isJfif = /\.jfif$/i.test(file.name);
+    if (isJfif) jfifCount++;
+    if (isVideoFile(file.name)) vidCount++;
+
+    const newExt = getConvertedExtension(file.name);
+    const newName = `${seq}${newExt}`;
+    const dateStr = file.lastModified
+      ? new Date(file.lastModified).toLocaleString("th-TH", {
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", second: "2-digit"
+        })
+      : "-";
+
+    return `
+      <tr>
+        <td><strong>#${seq}</strong></td>
+        <td>
+          <span class="batch-new-name">${escapeHtml(newName)}</span>
+          ${isJfif ? '<span class="batch-tag-jfif">แปลงจาก .jfif</span>' : ''}
+        </td>
+        <td style="color:var(--text-muted); font-size:13px;">${escapeHtml(file.name)}</td>
+        <td style="font-size:12px;">${escapeHtml(dateStr)}</td>
+        <td style="font-size:12px; color:var(--text-muted);">${formatBytes(file.size)}</td>
+        <td style="text-align:right;">
+          <button type="button" class="sched-del" title="เอาออก" onclick="removeBatchFileAt(${idx})">🗑️</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  const imgCount = batchQueuedFiles.length - vidCount;
+  summary.innerHTML = `พร้อมโหลดทั้งหมด <b>${batchQueuedFiles.length} ไฟล์</b> (รูป ${imgCount} • วีดีโอ ${vidCount}${jfifCount > 0 ? ` • แปลง .jfif→.jpg ${jfifCount} ไฟล์` : ""})`;
+  btnTop.disabled = false;
+  btnFoot.disabled = false;
+}
+
+// Pure-JS Zero-Dependency ZIP Builder
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    table[i] = c >>> 0;
+  }
+  return table;
+})();
+
+function computeCrc32(bytes) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ bytes[i]) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function toDosDateTime(ms) {
+  const d = ms ? new Date(ms) : new Date();
+  const year = Math.max(1980, d.getFullYear());
+  const dosDate = ((year - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  const dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2);
+  return { dosDate, dosTime };
+}
+
+async function buildAndDownloadZip(entriesList, zipFilename) {
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  for (const item of entriesList) {
+    const nameBytes = encoder.encode(item.name);
+    const fileBytes = new Uint8Array(await item.blob.arrayBuffer());
+    const crc = computeCrc32(fileBytes);
+    const size = fileBytes.length;
+    const { dosDate, dosTime } = toDosDateTime(item.lastModified || Date.now());
+
+    const localHeader = new ArrayBuffer(30 + nameBytes.length);
+    const lv = new DataView(localHeader);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true);
+    lv.setUint16(8, 0, true);
+    lv.setUint16(10, dosTime, true);
+    lv.setUint16(12, dosDate, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, size, true);
+    lv.setUint32(22, size, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    new Uint8Array(localHeader, 30).set(nameBytes);
+    localParts.push(localHeader, fileBytes);
+
+    const centralHeader = new ArrayBuffer(46 + nameBytes.length);
+    const cv = new DataView(centralHeader);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0x0800, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, dosTime, true);
+    cv.setUint16(14, dosDate, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, size, true);
+    cv.setUint32(24, size, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);
+    cv.setUint16(32, 0, true);
+    cv.setUint16(34, 0, true);
+    cv.setUint16(36, 0, true);
+    cv.setUint32(38, 0, true);
+    cv.setUint32(42, offset, true);
+    new Uint8Array(centralHeader, 46).set(nameBytes);
+    centralParts.push(centralHeader);
+
+    offset += localHeader.byteLength + size;
+  }
+
+  const centralSize = centralParts.reduce((acc, buf) => acc + buf.byteLength, 0);
+  const eocd = new ArrayBuffer(22);
+  const ev = new DataView(eocd);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(4, 0, true);
+  ev.setUint16(6, 0, true);
+  ev.setUint16(8, entriesList.length, true);
+  ev.setUint16(10, entriesList.length, true);
+  ev.setUint32(12, centralSize, true);
+  ev.setUint32(16, offset, true);
+  ev.setUint16(20, 0, true);
+
+  const zipBlob = new Blob([...localParts, ...centralParts, eocd], { type: "application/zip" });
+  const safeName = zipFilename.replace(/[\\/*?:"<>|]/g, "_").trim() || "download";
+  const url = URL.createObjectURL(zipBlob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = safeName.toLowerCase().endsWith(".zip") ? safeName : `${safeName}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+async function downloadBatchZip() {
+  if (batchQueuedFiles.length === 0) return;
+  const btnTop = document.getElementById("batchDownloadBtn");
+  const btnFoot = document.getElementById("batchDownloadBtnFooter");
+  btnTop.disabled = true;
+  btnFoot.disabled = true;
+  btnTop.textContent = "⏳ กำลังสร้างไฟล์ .ZIP...";
+  btnFoot.textContent = "⏳ กำลังสร้างไฟล์ .ZIP...";
+
+  try {
+    const entries = batchQueuedFiles.map((file, idx) => ({
+      name: `${idx + 1}${getConvertedExtension(file.name)}`,
+      blob: file,
+      lastModified: file.lastModified
+    }));
+    const rawZipName = document.getElementById("batchZipName").value || "renamed_media";
+    await buildAndDownloadZip(entries, rawZipName);
+  } catch (err) {
+    alert("เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP: " + err.message);
+  } finally {
+    btnTop.disabled = false;
+    btnFoot.disabled = false;
+    btnTop.textContent = "📦 โหลดออกมาทั้งโฟลเดอร์ (.ZIP)";
+    btnFoot.textContent = "📦 โหลดออกมาทั้งโฟลเดอร์ (.ZIP)";
+  }
+}
+
+// ================= 7-DAY SCHEDULE =================
+function toggleSchedule() {
+  const sec = document.getElementById("scheduleSection");
+  sec.style.display = sec.style.display === "none" ? "block" : "none";
+}
+
+function getTodayThaiDay() {
+  const map = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+  return map[new Date().getDay()];
+}
+
+function renderSchedule() {
+  const grid = document.getElementById("scheduleGrid");
+  const todayThai = getTodayThaiDay();
+  grid.innerHTML = DAYS_7.map(day => {
+    const items = appData.schedule[day] || [];
+    const isToday = day === todayThai;
+    const chipsHtml = items.map((item, idx) => {
+      const ch = appData.channels.find(c => c.id === item.channelId);
+      const chName = ch ? ch.name : "(ช่องถูกลบ)";
+      const chColor = ch ? ch.color : "#64748b";
+      return `
+        <div class="sched-chip" style="border-left-color:${chColor}">
+          <div class="sched-chip-text">
+            <strong>${escapeHtml(chName)}</strong>
+            ${item.note ? `<span class="sched-chip-note">⏰ ${escapeHtml(item.note)}</span>` : ""}
+          </div>
+          <button class="sched-del" title="ลบออกจากวัน${day}" onclick="removeScheduleItem('${day}', ${idx})">×</button>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <div class="day-col ${isToday ? "today" : ""}">
+        <div class="day-head">
+          <span>วัน${day}</span>
+          ${isToday ? '<span class="today-tag">วันนี้</span>' : ""}
+        </div>
+        <div class="sched-items">
+          ${chipsHtml || '<div style="font-size:12px; color:#64748b; text-align:center; padding-top:16px;">ว่าง</div>'}
+        </div>
+        <button class="btn btn-sm" style="width:100%; justify-content:center;" onclick="openSchedModal('${day}')">+ เพิ่มช่อง</button>
+      </div>
+    `;
+  }).join("");
+}
+
+function openSchedModal(day) {
+  activeSchedDay = day;
+  document.getElementById("schedModalTitle").textContent = `📅 เพิ่มช่องลงคลิปประจำ "วัน${day}"`;
+  const sel = document.getElementById("schedChannelSelect");
+  sel.innerHTML = appData.channels.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+  document.getElementById("schedNoteInput").value = "";
+  document.getElementById("schedModal").classList.add("open");
+}
+
+function closeSchedModal() {
+  document.getElementById("schedModal").classList.remove("open");
+}
+
+function confirmAddSchedule() {
+  const chId = document.getElementById("schedChannelSelect").value;
+  const note = document.getElementById("schedNoteInput").value.trim();
+  if (!chId || !activeSchedDay) return;
+  if (!appData.schedule[activeSchedDay]) appData.schedule[activeSchedDay] = [];
+  appData.schedule[activeSchedDay].push({ channelId: chId, note });
+  closeSchedModal();
+  renderSchedule();
+  persistData();
+}
+
+function removeScheduleItem(day, idx) {
+  appData.schedule[day].splice(idx, 1);
+  renderSchedule();
+  persistData();
+}
+
+// ================= CHANNEL MANAGEMENT =================
+function renderChannelTabs() {
+  const container = document.getElementById("channelTabs");
+  const totalCount = appData.stories.length;
+  let html = `
+    <button class="ch-tab ${selectedChannelFilter === "ALL" ? "active" : ""}" onclick="selectChannelFilter('ALL')">
+      <span>📺 ทุกช่องรวมกัน</span>
+      <span class="ch-count">${totalCount}</span>
+    </button>
+  `;
+  appData.channels.forEach(ch => {
+    const count = appData.stories.filter(s => s.channelId === ch.id).length;
+    html += `
+      <button class="ch-tab ${selectedChannelFilter === ch.id ? "active" : ""}" onclick="selectChannelFilter('${ch.id}')">
+        <span class="ch-dot" style="background:${ch.color}"></span>
+        <span>${escapeHtml(ch.name)}</span>
+        <span class="ch-count">${count}</span>
+      </button>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function selectChannelFilter(chId) {
+  selectedChannelFilter = chId;
+  currentPage = 1;
+  renderChannelTabs();
+  renderStoriesTable();
+}
+
+function openChannelModal() {
+  renderChannelManageList();
+  document.getElementById("channelModal").classList.add("open");
+}
+
+function closeChannelModal() {
+  document.getElementById("channelModal").classList.remove("open");
+  renderAll();
+}
+
+function renderChannelManageList() {
+  const list = document.getElementById("channelManageList");
+  list.innerHTML = appData.channels.map((ch, idx) => `
+    <div class="ch-manage-row">
+      <input type="color" value="${ch.color}" style="width:40px; height:36px; border:none; background:none; cursor:pointer;"
+             onchange="updateChannel(${idx}, 'color', this.value)">
+      <input class="input" type="text" value="${escapeHtml(ch.name)}" style="flex:1;"
+             onchange="updateChannel(${idx}, 'name', this.value)">
+      <button class="btn btn-danger btn-sm" onclick="deleteChannel(${idx})">ลบช่อง</button>
+    </div>
+  `).join("");
+}
+
+function updateChannel(idx, field, val) {
+  if (!val.trim()) return;
+  appData.channels[idx][field] = val.trim();
+  persistData();
+}
+
+function addChannel() {
+  const nameInput = document.getElementById("newChannelName");
+  const colorInput = document.getElementById("newChannelColor");
+  const name = nameInput.value.trim();
+  if (!name) return alert("กรุณาพิมพ์ชื่อช่องก่อนครับ");
+  appData.channels.push({ id: "ch_" + Date.now(), name, color: colorInput.value });
+  nameInput.value = "";
+  renderChannelManageList();
+  persistData();
+}
+
+function deleteChannel(idx) {
+  const ch = appData.channels[idx];
+  if (!confirm(`ยืนยันการลบช่อง "${ch.name}" ใช่หรือไม่?`)) return;
+  appData.channels.splice(idx, 1);
+  if (selectedChannelFilter === ch.id) selectedChannelFilter = "ALL";
+  renderChannelManageList();
+  persistData();
+}
+
+// ================= STORIES LIST & PAGINATION =================
+function resetPageAndRender() {
+  currentPage = 1;
+  renderStoriesTable();
+}
+
+function getFilteredStories() {
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+  const st = document.getElementById("statusFilter").value;
+  return appData.stories.filter(s => {
+    if (selectedChannelFilter !== "ALL" && s.channelId !== selectedChannelFilter) return false;
+    if (st !== "ALL" && s.status !== st) return false;
+    if (q) {
+      const plain = stripHtml(s.contentHtml || "").toLowerCase();
+      const title = (s.title || "").toLowerCase();
+      const ep = (s.episode || "").toLowerCase();
+      if (!title.includes(q) && !ep.includes(q) && !plain.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderStoriesTable() {
+  const filtered = getFilteredStories();
+  const totalItems = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+  const tbody = document.getElementById("storyTableBody");
+  if (pageItems.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:36px; color:var(--text-muted);">ยังไม่มีรายการเรื่องเล่าในหมวดนี้ — กดปุ่ม <strong>"➕ เพิ่มเรื่องใหม่"</strong> เพื่อเริ่มต้นได้เลย</td></tr>`;
+  } else {
+    tbody.innerHTML = pageItems.map((story, idx) => {
+      const ch = appData.channels.find(c => c.id === story.channelId);
+      const chName = ch ? ch.name : "ไม่ระบุช่อง";
+      const chColor = ch ? ch.color : "#64748b";
+      const plainText = stripHtml(story.contentHtml || "").trim() || "(ยังไม่มีเนื้อเรื่อง)";
+      const mediaList = story.images || [];
+      const vidCount = mediaList.filter(p => isVideoFile(p)).length;
+      const imgCount = mediaList.length - vidCount;
+      const mediaLabel = vidCount > 0 ? `🖼️ ${imgCount} • 🎬 ${vidCount}` : `🖼️ ${imgCount} รูป`;
+
+      const stClass = story.status === "ลงยูทูปแล้ว" ? "st-published"
+                    : story.status === "ทำภาพ/เสียงแล้ว" ? "st-media"
+                    : story.status === "เขียนบทเสร็จ" ? "st-script" : "st-draft";
+
+      return `
+        <tr class="story-row" onclick="openStoryModal('${story.id}')">
+          <td><strong>${escapeHtml(story.episode || `#${startIdx + idx + 1}`)}</strong></td>
+          <td>
+            <div class="story-title-cell">${escapeHtml(story.title || "(ไม่มีชื่อเรื่อง)")}</div>
+            <div class="story-excerpt">${escapeHtml(plainText)}</div>
+          </td>
+          <td><span class="badge" style="background:${chColor}">${escapeHtml(chName)}</span></td>
+          <td><span class="status-badge ${stClass}">${escapeHtml(story.status || "ร่างไอเดีย")}</span></td>
+          <td>${mediaLabel}</td>
+          <td style="font-size:12px; color:var(--text-muted);">${escapeHtml(story.updatedAt || "-")}</td>
+          <td style="text-align:right;" onclick="event.stopPropagation()">
+            <button class="btn btn-sm" onclick="openStoryModal('${story.id}')">✏️ เปิด/แก้ไข</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteStoryById('${story.id}')">ลบ</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  document.getElementById("paginationInfo").textContent =
+    `แสดง ${totalItems === 0 ? 0 : startIdx + 1} - ${Math.min(startIdx + PAGE_SIZE, totalItems)} จากทั้งหมด ${totalItems} เรื่อง (หน้า ${currentPage} / ${totalPages})`;
+
+  const btnBox = document.getElementById("paginationButtons");
+  let pHtml = `<button class="page-btn" ${currentPage === 1 ? "disabled" : ""} onclick="goToPage(${currentPage - 1})">◀ ก่อนหน้า</button>`;
+  for (let p = 1; p <= totalPages; p++) {
+    pHtml += `<button class="page-btn ${p === currentPage ? "active" : ""}" onclick="goToPage(${p})">${p}</button>`;
+  }
+  pHtml += `<button class="page-btn" ${currentPage === totalPages ? "disabled" : ""} onclick="goToPage(${currentPage + 1})">ถัดไป ▶</button>`;
+  btnBox.innerHTML = pHtml;
+}
+
+function goToPage(p) {
+  currentPage = p;
+  renderStoriesTable();
+}
+
+// ================= POPUP MODAL =================
+function toggleStoryFullscreen() {
+  const box = document.getElementById("storyModalBox");
+  const btn = document.getElementById("fullscreenToggleBtn");
+  const isFull = box.classList.toggle("fullscreen");
+  btn.textContent = isFull ? "🗗 ย่อขนาดปกติ" : "⛶ ขยายเต็มจอ";
+}
+
+function openStoryModal(storyId) {
+  const chSelect = document.getElementById("editChannelId");
+  chSelect.innerHTML = appData.channels.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+
+  let story;
+  if (storyId) {
+    story = appData.stories.find(s => s.id === storyId);
+    document.getElementById("modalHeaderTitle").textContent = "📖 อ่านและแก้ไขรายละเอียดเรื่องเล่า";
+  } else {
+    const defaultCh = selectedChannelFilter !== "ALL"
+      ? selectedChannelFilter
+      : (appData.channels[0] ? appData.channels[0].id : "");
+    const nextNum = appData.stories.filter(s => s.channelId === defaultCh).length + 1;
+    story = {
+      id: "story_" + Date.now(),
+      channelId: defaultCh,
+      episode: "EP." + String(nextNum).padStart(2, "0"),
+      title: "",
+      status: "ร่างไอเดีย",
+      contentHtml: "",
+      images: [],
+      updatedAt: formatThaiNow()
+    };
+    appData.stories.unshift(story);
+    document.getElementById("modalHeaderTitle").textContent = "✨ เพิ่มเรื่องเล่าใหม่";
+    persistData();
+    renderAll();
+  }
+
+  activeStoryId = story.id;
+  document.getElementById("editChannelId").value = story.channelId;
+  document.getElementById("editEpisode").value = story.episode || "";
+  document.getElementById("editTitle").value = story.title || "";
+  document.getElementById("editStatus").value = story.status || "ร่างไอเดีย";
+  document.getElementById("wordEditor").innerHTML = story.contentHtml || "";
+
+  updateWordCount();
+  renderStoryGallery(story);
+  document.getElementById("storyModalBody").scrollTop = 0;
+  document.getElementById("storyModal").classList.add("open");
+}
+
+function closeStoryModal() {
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    commitStoryEdits(true);
+  }
+  activeStoryId = null;
+  document.getElementById("storyModal").classList.remove("open");
+  renderAll();
+}
+
+function triggerStoryAutoSave() {
+  document.getElementById("modalAutoSaveHint").textContent = "⏳ กำลังพิมพ์...";
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    commitStoryEdits(true);
+  }, 1200);
+}
+
+function commitStoryEdits(saveToCloud = true) {
+  if (!activeStoryId) return;
+  const story = appData.stories.find(s => s.id === activeStoryId);
+  if (!story) return;
+
+  story.channelId = document.getElementById("editChannelId").value;
+  story.episode = document.getElementById("editEpisode").value.trim();
+  story.title = document.getElementById("editTitle").value.trim();
+  story.status = document.getElementById("editStatus").value;
+  story.contentHtml = document.getElementById("wordEditor").innerHTML;
+  story.updatedAt = formatThaiNow();
+
+  renderAll();
+  if (saveToCloud) persistData();
+}
+
+function saveCurrentStoryAndNotify() {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  commitStoryEdits(true);
+}
+
+function deleteCurrentStoryFromModal() {
+  if (!activeStoryId) return;
+  const id = activeStoryId;
+  closeStoryModal();
+  deleteStoryById(id);
+}
+
+async function deleteStoryById(storyId) {
+  const story = appData.stories.find(s => s.id === storyId);
+  if (!story) return;
+  if (!confirm(`ต้องการลบเรื่อง "${story.title || story.episode}" และไฟล์สื่อของเรื่องนี้บน GitHub ใช่หรือไม่?`)) return;
+
+  const mediaToDelete = [...(story.images || [])];
+  appData.stories = appData.stories.filter(s => s.id !== storyId);
+  renderAll();
+  await persistData();
+
+  if (isGitHubConfigured()) {
+    for (const mPath of mediaToDelete) {
+      deleteFileFromGitHub(mPath).catch(() => {});
+    }
+  }
+}
+
+async function deleteFileFromGitHub(filePath) {
+  const getRes = await githubRequest(`${filePath}?ref=${encodeURIComponent(ghConfig.branch)}`);
+  if (!getRes.ok) return;
+  const info = await getRes.json();
+  await githubRequest(filePath, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: `Delete ${filePath}`,
+      sha: info.sha,
+      branch: ghConfig.branch
+    })
+  });
+}
+
+// ================= WORD EDITOR COMMANDS =================
+function execCmd(command, value = null) {
+  document.getElementById("wordEditor").focus();
+  document.execCommand(command, false, value);
+  onEditorInput();
+}
+
+function onEditorInput() {
+  updateWordCount();
+  triggerStoryAutoSave();
+}
+
+function updateWordCount() {
+  const text = document.getElementById("wordEditor").innerText.trim();
+  document.getElementById("wordCountLabel").textContent = `จำนวนตัวอักษร: ${text.length.toLocaleString()} ตัวอักษร`;
+}
+
+function copyStoryPlainText() {
+  const text = document.getElementById("wordEditor").innerText;
+  navigator.clipboard.writeText(text).then(() => alert("คัดลอกเนื้อเรื่องทั้งหมดเรียบร้อยแล้ว!"));
+}
+
+// ================= GITHUB MEDIA UPLOAD & DOWNLOAD (.ZIP) =================
+function isImageFile(filename) {
+  return /\.(jpg|jpeg|jfif|png|webp|gif|bmp)$/i.test(filename);
+}
+
+function isVideoFile(filename) {
+  return /\.(mp4|mov|avi|mkv|webm|wmv|m4v)$/i.test(filename);
+}
+
+function isMediaFile(filename) {
+  return isImageFile(filename) || isVideoFile(filename);
+}
+
+function setupDropzone() {
+  const dz = document.getElementById("imageDropzone");
+  dz.addEventListener("dragover", e => {
+    e.preventDefault();
+    dz.classList.add("dragover");
+  });
+  dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
+  dz.addEventListener("drop", async e => {
+    e.preventDefault();
+    dz.classList.remove("dragover");
+    if (!activeStoryId) return;
+
+    const items = e.dataTransfer.items;
+    const collectedFiles = [];
+
+    if (items && items.length > 0 && items[0].webkitGetAsEntry) {
+      const entries = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry();
+        if (entry) entries.push(entry);
+      }
+      for (const entry of entries) {
+        await traverseFileTree(entry, collectedFiles);
+      }
+    } else if (e.dataTransfer.files) {
+      for (const f of e.dataTransfer.files) {
+        if (isMediaFile(f.name)) collectedFiles.push(f);
+      }
+    }
+
+    if (collectedFiles.length > 0) {
+      await uploadMediaFilesToGitHub(collectedFiles);
+    } else {
+      alert("ไม่พบไฟล์รูปภาพหรือวีดีโอที่รองรับในโฟลเดอร์ที่ลากมาวาง");
+    }
+  });
+}
+
+function traverseFileTree(item, fileList) {
+  return new Promise(resolve => {
+    if (item.isFile) {
+      item.file(file => {
+        if (isMediaFile(file.name)) fileList.push(file);
+        resolve();
+      }, () => resolve());
+    } else if (item.isDirectory) {
+      const dirReader = item.createReader();
+      const readBatch = () => {
+        dirReader.readEntries(async entries => {
+          if (!entries.length) resolve();
+          else {
+            for (const ent of entries) await traverseFileTree(ent, fileList);
+            readBatch();
+          }
+        }, () => resolve());
+      };
+      readBatch();
+    } else {
+      resolve();
+    }
+  });
+}
+
+async function handleManualFileSelect(fileListObj) {
+  const files = Array.from(fileListObj).filter(f => isMediaFile(f.name));
+  if (files.length > 0) await uploadMediaFilesToGitHub(files);
+}
+
+async function uploadMediaFilesToGitHub(files) {
+  const story = appData.stories.find(s => s.id === activeStoryId);
+  if (!story) return;
+  if (!story.images) story.images = [];
+
+  if (!isGitHubConfigured()) {
+    alert("กรุณากดปุ่ม '☁️ เชื่อมต่อ GitHub' ด้านบนเพื่อตั้งค่าก่อนอัปโหลดไฟล์ครับ");
+    openGitHubConfigModal();
+    return;
+  }
+
+  // เรียงตามวันที่จาก เก่าสุด -> ล่าสุด
+  files.sort((a, b) => {
+    if (a.lastModified !== b.lastModified) return a.lastModified - b.lastModified;
+    return a.name.localeCompare(b.name, undefined, { numeric: true });
+  });
+
+  // หาเลขลำดับถัดไปจากชื่อไฟล์เดิมในเรื่อง
+  let maxSeq = 0;
+  for (const existingPath of story.images) {
+    const base = existingPath.split("/").pop().split(".")[0];
+    const num = parseInt(base, 10);
+    if (!isNaN(num) && num > maxSeq) maxSeq = num;
+  }
+
+  const skippedLarge = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file.size > MAX_GITHUB_FILE_BYTES) {
+      skippedLarge.push(`${file.name} (${formatBytes(file.size)})`);
+      continue;
+    }
+
+    maxSeq += 1;
+    const ext = getConvertedExtension(file.name);
+    const repoPath = `media/${story.id}/${maxSeq}${ext}`;
+    setSaveStatus("saving", `⏳ กำลังอัปโหลดไฟล์ ${i + 1}/${files.length} (${maxSeq}${ext}) ขึ้น GitHub...`);
+
+    try {
+      const b64 = await fileToBase64Raw(file);
+      const res = await githubRequest(repoPath, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: `Upload ${repoPath}`,
+          content: b64,
+          branch: ghConfig.branch
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+
+      // เก็บลงแคชทันทีเพื่อแสดงภาพตัวอย่างโดยไม่ต้องโหลดซ้ำ
+      mediaBlobCache[repoPath] = { blob: file, url: URL.createObjectURL(file) };
+      story.images.push(repoPath);
+    } catch (err) {
+      alert(`อัปโหลดไฟล์ ${file.name} ไม่สำเร็จ: ${err.message}`);
+    }
+  }
+
+  if (skippedLarge.length > 0) {
+    alert("ไฟล์ต่อไปนี้มีขนาดเกิน 50 MB (เกินลิมิต GitHub API) จึงไม่ถูกอัปโหลด:\n- " + skippedLarge.join("\n- "));
+  }
+
+  renderStoryGallery(story);
+  await commitStoryEdits(true);
+}
+
+function renderStoryGallery(story) {
+  const media = story.images || [];
+  const vidCount = media.filter(p => isVideoFile(p)).length;
+  const imgCount = media.length - vidCount;
+  document.getElementById("storyImageCount").textContent =
+    `${media.length} ไฟล์ (รูป ${imgCount} • วีดีโอ ${vidCount})`;
+
+  const grid = document.getElementById("storyGalleryGrid");
+  grid.innerHTML = media.map((mediaPath, idx) => {
+    const fileName = mediaPath.split("/").pop();
+    const isVid = isVideoFile(fileName);
+    const cached = mediaBlobCache[mediaPath];
+
+    let previewHtml;
+    if (cached) {
+      previewHtml = isVid
+        ? `<span class="media-type-badge">🎬 วีดีโอ</span><video src="${cached.url}#t=0.5" muted preload="metadata" onclick="openMediaLightbox('${mediaPath}', true)"></video>`
+        : `<img src="${cached.url}" alt="${escapeHtml(fileName)}" onclick="openMediaLightbox('${mediaPath}', false)">`;
+    } else {
+      previewHtml = `
+        <span class="media-type-badge">${isVid ? "🎬 วีดีโอ" : "🖼️ รูปภาพ"}</span>
+        <div id="media_slot_${idx}" class="media-placeholder" onclick="openMediaLightbox('${mediaPath}', ${isVid})">
+          <span>⏳ กำลังโหลด...</span>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="img-card">
+        ${previewHtml}
+        <div class="img-card-foot">
+          <span class="img-name" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span>
+          <button type="button" class="sched-del" title="ลบไฟล์นี้" onclick="removeStoryImage(${idx})">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  // โหลดภาพตัวอย่างจาก Private Repo แบบเบื้องหลัง
+  media.forEach((mediaPath, idx) => {
+    if (mediaBlobCache[mediaPath]) return;
+    const isVid = isVideoFile(mediaPath);
+    fetchPrivateMediaBlob(mediaPath).then(item => {
+      const slot = document.getElementById(`media_slot_${idx}`);
+      if (!slot) return;
+      if (isVid) {
+        slot.outerHTML = `<video src="${item.url}#t=0.5" muted preload="metadata" onclick="openMediaLightbox('${mediaPath}', true)"></video>`;
+      } else {
+        slot.outerHTML = `<img src="${item.url}" alt="" onclick="openMediaLightbox('${mediaPath}', false)">`;
+      }
+    }).catch(() => {
+      const slot = document.getElementById(`media_slot_${idx}`);
+      if (slot) slot.innerHTML = `<span>⚠️ กดเพื่อเปิดดู</span>`;
+    });
+  });
+}
+
+async function openMediaLightbox(mediaPath, isVideo) {
+  try {
+    setSaveStatus("saving", "⏳ กำลังเปิดไฟล์จาก GitHub...");
+    const item = await fetchPrivateMediaBlob(mediaPath);
+    setSaveStatus("saved", "🟢 ซิงก์ GitHub แล้ว");
+    const lb = document.getElementById("lightbox");
+    const img = document.getElementById("lightboxImg");
+    const vid = document.getElementById("lightboxVideo");
+    if (isVideo) {
+      img.style.display = "none";
+      vid.style.display = "block";
+      vid.src = item.url;
+    } else {
+      vid.pause();
+      vid.style.display = "none";
+      img.style.display = "block";
+      img.src = item.url;
+    }
+    lb.classList.add("open");
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function closeLightbox(e) {
+  if (e.target.tagName === "VIDEO") return;
+  const lb = document.getElementById("lightbox");
+  const vid = document.getElementById("lightboxVideo");
+  vid.pause();
+  vid.src = "";
+  lb.classList.remove("open");
+}
+
+async function removeStoryImage(idx) {
+  const story = appData.stories.find(s => s.id === activeStoryId);
+  if (!story || !story.images) return;
+  const mediaPath = story.images[idx];
+  story.images.splice(idx, 1);
+  renderStoryGallery(story);
+  await commitStoryEdits(true);
+  if (isGitHubConfigured() && mediaPath) {
+    deleteFileFromGitHub(mediaPath).catch(() => {});
+  }
+}
+
+async function downloadStoryMediaZip() {
+  const story = appData.stories.find(s => s.id === activeStoryId);
+  if (!story || !story.images || story.images.length === 0) {
+    alert("เรื่องนี้ยังไม่มีไฟล์รูปภาพหรือวีดีโอให้ดาวน์โหลดครับ");
+    return;
+  }
+  const btn = document.getElementById("storyZipBtn");
+  btn.disabled = true;
+
+  try {
+    const entries = [];
+    for (let i = 0; i < story.images.length; i++) {
+      const mPath = story.images[i];
+      const fname = mPath.split("/").pop();
+      btn.textContent = `⏳ กำลังดึงไฟล์ ${i + 1}/${story.images.length}...`;
+      const item = await fetchPrivateMediaBlob(mPath);
+      entries.push({ name: fname, blob: item.blob, lastModified: Date.now() });
+    }
+    btn.textContent = "📦 กำลังแพ็กเป็นไฟล์ .ZIP...";
+    const zipLabel = [story.episode, story.title].filter(Boolean).join("_") || story.id;
+    await buildAndDownloadZip(entries, zipLabel);
+  } catch (err) {
+    alert("ดาวน์โหลดไฟล์ไม่สำเร็จ: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "📦 โหลดออกมาทั้งโฟลเดอร์ (.ZIP)";
+  }
+}
+
+// ================= HELPERS =================
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function stripHtml(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || "";
+}
+
+function formatThaiNow() {
+  const d = new Date();
+  return d.toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" }) +
+         " " + d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const idx = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  return (bytes / Math.pow(1024, idx)).toFixed(idx === 0 ? 0 : 1) + " " + units[idx];
+}
+
+initApp();
+</script>
+</body>
+</html>
