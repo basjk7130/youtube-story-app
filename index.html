@@ -1240,6 +1240,7 @@ let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
 let selectedChannelFilter = "ALL";
 let currentPage = 1;
 let activeStoryId = null;
+let savedPageScrollY = null;
 let autoSaveTimer = null;
 let activeSchedDay = null;
 let batchQueuedFiles = [];
@@ -1564,7 +1565,6 @@ async function persistData() {
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         const msg = errData.message || `HTTP ${res.status}`;
-        // หากเป็น 403 เพราะสิทธิ์ไม่พอ ไม่ต้องวนรอซ้ำ
         if (res.status === 403 && !/rate limit/i.test(msg)) {
           throw new Error(`${msg} (HTTP 403)`);
         }
@@ -2080,7 +2080,6 @@ function getStatusBadgeClass(status) {
 
 function applyAutoProductionStatus(story) {
   if (!story) return;
-  // หากผู้ใช้กดเปลี่ยนเป็น "ลงยูทูปแล้ว" เองแล้ว จะไม่เขียนทับอัตโนมัติ
   if (story.status === "ลงยูทูปแล้ว") return;
 
   const hasMedia = (story.images || []).length > 0;
@@ -2206,8 +2205,13 @@ function openStoryModal(storyId) {
 
   let story;
   const isNewStory = !storyId;
+
+  // จำตำแหน่งหน้าจอเดิมไว้ (ถ้าเพิ่มเรื่องใหม่ ให้ตั้งเป้ากลับขึ้นบนสุด)
+  savedPageScrollY = isNewStory ? 0 : window.scrollY;
+
   if (storyId) {
     story = appData.stories.find(s => s.id === storyId);
+    if (!story) return;
     document.getElementById("modalHeaderTitle").textContent = "📖 อ่านและแก้ไขรายละเอียดเรื่องเล่า";
   } else {
     const defaultCh = selectedChannelFilter !== "ALL"
@@ -2249,15 +2253,19 @@ function openStoryModal(storyId) {
   renderStoryGallery(story);
   renderStoryAudios(story);
 
-  // เปิดหน้าต่างและเลื่อนสกอล์ขึ้นบนสุดทันที
+  // เด้งหน้าเว็บขึ้นบนสุดเฉพาะตอนกด "เพิ่มเรื่องใหม่"
+  if (isNewStory) {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
   const modal = document.getElementById("storyModal");
   const modalBody = document.getElementById("storyModalBody");
   modal.classList.add("open");
+  document.body.style.overflow = "hidden"; // ล็อกหน้าเว็บพื้นหลังไม่ให้เลื่อนหลุดตำแหน่ง
   modalBody.scrollTop = 0;
 
   requestAnimationFrame(() => {
     modalBody.scrollTop = 0;
-    window.scrollTo({ top: 0, behavior: "smooth" });
     if (isNewStory) {
       const titleInput = document.getElementById("editTitle");
       if (titleInput) titleInput.focus();
@@ -2277,7 +2285,17 @@ function closeStoryModal() {
   }
   activeStoryId = null;
   document.getElementById("storyModal").classList.remove("open");
+  document.body.style.overflow = ""; // ปลดล็อกการเลื่อนหน้าเว็บ
   renderAll();
+
+  // คืนตำแหน่งการเลื่อนหน้าจอกลับไปจุดเดิมที่เปิดอ่าน
+  if (savedPageScrollY !== null) {
+    const targetY = savedPageScrollY;
+    savedPageScrollY = null;
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: targetY, behavior: "auto" });
+    });
+  }
 }
 
 function triggerStoryAutoSave() {
