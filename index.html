@@ -111,6 +111,17 @@
     font-weight: 600;
   }
   .btn-success:hover { background: #059669; }
+  .btn-success.has-unsaved {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #0f172a;
+    font-weight: 700;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+  }
+  .btn-success.has-unsaved:hover {
+    background: #d97706;
+    color: #fff;
+  }
   .btn-cyan {
     background: rgba(6, 182, 212, 0.18);
     border-color: rgba(6, 182, 212, 0.5);
@@ -668,6 +679,9 @@
     overflow: hidden;
     position: relative;
   }
+  .img-card.pending-card {
+    border-color: rgba(245, 158, 11, 0.75);
+  }
   .img-card img, .img-card video {
     width: 100%;
     height: 110px;
@@ -702,6 +716,27 @@
     border: 1px solid rgba(56, 189, 248, 0.4);
     pointer-events: none;
   }
+  .pending-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(245, 158, 11, 0.95);
+    color: #0f172a;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+  .pending-audio-tag {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
   .img-card-foot {
     padding: 5px 7px;
     font-size: 12px;
@@ -735,6 +770,9 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+  }
+  .audio-row.pending-card {
+    border-color: rgba(245, 158, 11, 0.75);
   }
   .audio-info {
     display: flex;
@@ -822,7 +860,7 @@
   <section id="scheduleSection" class="card">
     <div class="card-header">
       <h2 class="card-title">📅 ตารางลงคลิปประจำสัปดาห์ (7 วัน)</h2>
-      <span style="font-size:12px; color:var(--text-muted);">* บันทึกขึ้น GitHub Private Repo อัตโนมัติ</span>
+      <span style="font-size:12px; color:var(--text-muted);">* บันทึกขึ้น GitHub Private Repo</span>
     </div>
     <div id="scheduleGrid" class="schedule-grid"></div>
   </section>
@@ -984,13 +1022,13 @@
 <div id="storyModal" class="modal-backdrop">
   <div id="storyModalBox" class="modal-box">
     <div class="modal-header">
-      <div style="display:flex; align-items:center; gap:10px;">
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <strong id="modalHeaderTitle" style="font-size:17px;">📖 รายละเอียด & แก้ไขเรื่องเล่า</strong>
-        <span id="modalAutoSaveHint" style="font-size:12px; color:#34d399;">✓ ซิงก์ขึ้น GitHub อัตโนมัติ</span>
+        <span id="modalAutoSaveHint" style="font-size:12px; color:#94a3b8;">⚪ กดปุ่มบันทึกเมื่อแก้ไขเสร็จ</span>
       </div>
       <div style="display:flex; gap:8px;">
         <button id="fullscreenToggleBtn" class="btn btn-sm" onclick="toggleStoryFullscreen()">⛶ ขยายเต็มจอ</button>
-        <button class="btn btn-success btn-sm" onclick="saveCurrentStoryAndNotify()">☁️ บันทึกขึ้น GitHub ทันที</button>
+        <button id="btnSaveStoryTop" class="btn btn-success btn-sm" onclick="saveCurrentStoryAndNotify()">☁️ บันทึกขึ้น GitHub</button>
         <button class="btn btn-sm" onclick="closeStoryModal()">✖ ปิดหน้าต่าง</button>
       </div>
     </div>
@@ -999,19 +1037,19 @@
       <div class="meta-grid">
         <div>
           <label class="field-label">ช่อง YouTube</label>
-          <select id="editChannelId" class="select" style="width:100%;" onchange="triggerStoryAutoSave()"></select>
+          <select id="editChannelId" class="select" style="width:100%;" onchange="onStoryFieldChange()"></select>
         </div>
         <div>
           <label class="field-label">ตอนที่ (EP)</label>
-          <input id="editEpisode" class="input" type="text" style="width:100%;" placeholder="เช่น EP.01" oninput="triggerStoryAutoSave()">
+          <input id="editEpisode" class="input" type="text" style="width:100%;" placeholder="เช่น EP.01" oninput="onStoryFieldChange()">
         </div>
         <div>
           <label class="field-label">ชื่อเรื่อง</label>
-          <input id="editTitle" class="input" type="text" style="width:100%; font-weight:700;" placeholder="พิมพ์ชื่อเรื่องเล่า..." oninput="triggerStoryAutoSave()">
+          <input id="editTitle" class="input" type="text" style="width:100%; font-weight:700;" placeholder="พิมพ์ชื่อเรื่องเล่า..." oninput="onStoryFieldChange()">
         </div>
         <div>
           <label class="field-label">สถานะการผลิต</label>
-          <select id="editStatus" class="select" style="width:100%; font-weight:700;" onchange="triggerStoryAutoSave()">
+          <select id="editStatus" class="select" style="width:100%; font-weight:700;" onchange="onStoryFieldChange()">
             <option value="ร่างไอเดีย">📝 ร่างไอเดีย</option>
             <option value="เขียนบทเสร็จ">✍️ เขียนบทเสร็จ</option>
             <option value="ทำภาพแล้ว">🖼️ ทำภาพแล้ว</option>
@@ -1069,12 +1107,12 @@
         </div>
 
         <div id="wordEditor" class="word-editor" contenteditable="true"
-             data-placeholder="พิมพ์หรือวางเนื้อเรื่องยาวๆ ที่นี่ได้เลย... ระบบจะบันทึกขึ้น GitHub อัตโนมัติ"
+             data-placeholder="พิมพ์หรือวางเนื้อเรื่องยาวๆ ที่นี่ได้เลย... เมื่อแก้ไขเสร็จให้กดปุ่ม '☁️ บันทึกขึ้น GitHub'"
              oninput="onEditorInput()"></div>
 
         <div class="word-statusbar">
           <span id="wordCountLabel">จำนวนตัวอักษร: 0 ตัวอักษร</span>
-          <span>ซิงก์เนื้อหาและสีตัวอักษรขึ้น GitHub Private Repo อัตโนมัติ</span>
+          <span>โหมดบันทึกเอง: กดปุ่ม '☁️ บันทึกขึ้น GitHub' (หรือ Ctrl+S) เพื่อบันทึกเนื้อหาและไฟล์</span>
         </div>
       </div>
 
@@ -1095,7 +1133,7 @@
         <div id="imageDropzone" class="dropzone" onclick="document.getElementById('filesPickerInput').click()">
           <div style="font-size:15px; font-weight:700; margin-bottom:4px;">📥 ลาก "โฟลเดอร์รูปภาพ / วีดีโอ" หรือ "ไฟล์" มาวางในกรอบนี้ได้เลย</div>
           <div style="font-size:12px; color:var(--text-muted);">
-            อัปโหลดเสร็จเปลี่ยนสถานะเป็น <b>🖼️ ทำภาพแล้ว</b> อัตโนมัติ • แปลง <b>.jfif → .jpg</b> • ตั้งชื่อ <b>1, 2, 3... ตามวันที่ (เก่าสุดเป็น 1)</b>
+            ไฟล์จะรออัปโหลดจนกว่าคุณจะกดปุ่ม <b>☁️ บันทึกขึ้น GitHub</b> • แปลง <b>.jfif → .jpg</b> • ตั้งชื่อ <b>1, 2, 3... ตามวันที่ (เก่าสุดเป็น 1)</b>
           </div>
         </div>
 
@@ -1129,7 +1167,7 @@
         <div id="audioDropzone" class="dropzone" onclick="document.getElementById('audioPickerInput').click()">
           <div style="font-size:15px; font-weight:700; margin-bottom:4px;">🎧 ลาก "ไฟล์เสียงพากย์" (.mp3, .wav, .m4a) มาวางในกรอบนี้ได้เลย</div>
           <div style="font-size:12px; color:var(--text-muted);">
-            อัปโหลดเสร็จเปลี่ยนสถานะเป็น <b>🎙️ ทำเสียงแล้ว</b> (หรือ <b>🎬 ทำภาพ/เสียงแล้ว</b> หากมีรูปภาพอยู่แล้ว) อัตโนมัติ
+            ไฟล์เสียงจะรออัปโหลดจนกว่าคุณจะกดปุ่ม <b>☁️ บันทึกขึ้น GitHub</b> • ปรับสถานะ <b>🎙️ ทำเสียงแล้ว / 🎬 ทำภาพ/เสียงแล้ว</b> ให้อัตโนมัติ
           </div>
         </div>
 
@@ -1153,7 +1191,7 @@
       <button type="button" id="modalDeleteBtn" class="btn btn-danger" onclick="deleteCurrentStoryFromModal()">🗑️ ลบเรื่องนี้ทิ้ง</button>
       <div style="display:flex; gap:10px;">
         <button type="button" class="btn" onclick="closeStoryModal()">ปิดหน้าต่าง</button>
-        <button type="button" class="btn btn-success" onclick="saveCurrentStoryAndNotify()">☁️ บันทึกขึ้น GitHub</button>
+        <button type="button" id="btnSaveStoryBottom" class="btn btn-success" onclick="saveCurrentStoryAndNotify()">☁️ บันทึกขึ้น GitHub</button>
       </div>
     </div>
   </div>
@@ -1207,6 +1245,7 @@
   <img id="lightboxImg" src="" alt="Preview" style="display:none;">
   <video id="lightboxVideo" src="" controls autoplay style="display:none;"></video>
 </div>
+
 <script>
 const DAYS_7 = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
 const PAGE_SIZE = 10;
@@ -1240,8 +1279,14 @@ let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
 let selectedChannelFilter = "ALL";
 let currentPage = 1;
 let activeStoryId = null;
+let editingStoryDraft = null;
+let isNewStoryDraft = false;
+let hasUnsavedChanges = false;
+let pendingMediaItems = [];
+let pendingAudioItems = [];
+let pendingDeletePaths = [];
+let isSavingStory = false;
 let savedPageScrollY = null;
-let autoSaveTimer = null;
 let activeSchedDay = null;
 let batchQueuedFiles = [];
 let isUploadingMedia = false;
@@ -1457,7 +1502,6 @@ async function syncFromGitHub(showAlertOnSuccess = false) {
       let errJson = null;
       try { errJson = JSON.parse(rawText); } catch (e) {}
 
-      // กรณีไฟล์ stories_data.json ใหญ่เกิน 1 MB และ GitHub ตอบ 403 too_large
       const isTooLarge = res.status === 403 && errJson && Array.isArray(errJson.errors) &&
         errJson.errors.some(e => e && e.code === "too_large");
 
@@ -1503,13 +1547,6 @@ async function syncFromGitHub(showAlertOnSuccess = false) {
     updateMagicLinkButtonVisibility();
     setSaveStatus("saved", `🟢 ซิงก์ GitHub แล้ว (${ghConfig.repo})`);
     renderAll();
-    if (activeStoryId) {
-      const st = appData.stories.find(s => s.id === activeStoryId);
-      if (st) {
-        renderStoryGallery(st);
-        renderStoryAudios(st);
-      }
-    }
     if (showAlertOnSuccess) alert("ดึงข้อมูลล่าสุดจาก GitHub เรียบร้อยแล้ว!");
   } catch (err) {
     setSaveStatus("offline", "🔴 เชื่อมต่อ GitHub ไม่สำเร็จ");
@@ -1577,8 +1614,6 @@ async function persistData() {
       const saved = await res.json();
       currentJsonSha = saved.content && saved.content.sha ? saved.content.sha : currentJsonSha;
       setSaveStatus("saved", "🟢 บันทึกขึ้น GitHub เรียบร้อย");
-      const hint = document.getElementById("modalAutoSaveHint");
-      if (hint) hint.textContent = "✓ บันทึกขึ้น GitHub แล้ว (" + new Date().toLocaleTimeString("th-TH") + ")";
       return { ok: true };
     } catch (err) {
       if (attempt === 3 || /HTTP 403|HTTP 401|HTTP 404/.test(err.message)) {
@@ -1612,6 +1647,16 @@ async function initApp() {
   setupDropzone();
   setupAudioDropzone();
   setupBatchDropzone();
+
+  document.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      const modal = document.getElementById("storyModal");
+      if (modal && modal.classList.contains("open")) {
+        e.preventDefault();
+        saveCurrentStoryAndNotify();
+      }
+    }
+  });
 
   if (isGitHubConfigured()) {
     await syncFromGitHub(false);
@@ -2078,14 +2123,16 @@ function getStatusBadgeClass(status) {
   }
 }
 
-function applyAutoProductionStatus(story) {
-  if (!story) return;
-  if (story.status === "ลงยูทูปแล้ว") return;
+function applyAutoProductionStatusDraft() {
+  if (!editingStoryDraft) return;
+  const statusSelect = document.getElementById("editStatus");
+  const currentStatus = statusSelect ? statusSelect.value : editingStoryDraft.status;
+  if (currentStatus === "ลงยูทูปแล้ว") return;
 
-  const hasMedia = (story.images || []).length > 0;
-  const hasAudio = (story.audios || []).length > 0;
+  const hasMedia = ((editingStoryDraft.images || []).length + pendingMediaItems.length) > 0;
+  const hasAudio = ((editingStoryDraft.audios || []).length + pendingAudioItems.length) > 0;
 
-  let nextStatus = story.status;
+  let nextStatus = currentStatus;
   if (hasMedia && hasAudio) {
     nextStatus = "ทำภาพ/เสียงแล้ว";
   } else if (hasMedia) {
@@ -2094,9 +2141,8 @@ function applyAutoProductionStatus(story) {
     nextStatus = "ทำเสียงแล้ว";
   }
 
-  story.status = nextStatus;
-  const statusSelect = document.getElementById("editStatus");
-  if (statusSelect && activeStoryId === story.id) {
+  editingStoryDraft.status = nextStatus;
+  if (statusSelect) {
     statusSelect.value = nextStatus;
   }
 }
@@ -2190,8 +2236,7 @@ function goToPage(p) {
   currentPage = p;
   renderStoriesTable();
 }
-
-// ================= POPUP MODAL =================
+  // ================= POPUP MODAL (MANUAL SAVE) =================
 function toggleStoryFullscreen() {
   const box = document.getElementById("storyModalBox");
   const btn = document.getElementById("fullscreenToggleBtn");
@@ -2199,26 +2244,110 @@ function toggleStoryFullscreen() {
   btn.textContent = isFull ? "🗗 ย่อขนาดปกติ" : "⛶ ขยายเต็มจอ";
 }
 
+function updateModalSaveHint(state, extraMsg = "") {
+  const hint = document.getElementById("modalAutoSaveHint");
+  const btnTop = document.getElementById("btnSaveStoryTop");
+  const btnBot = document.getElementById("btnSaveStoryBottom");
+  if (!hint) return;
+
+  if (state === "dirty") {
+    hint.style.color = "#fbbf24";
+    hint.textContent = "🟡 มีการแก้ไข/เพิ่มไฟล์ (ยังไม่ได้บันทึก)";
+    if (btnTop) { btnTop.classList.add("has-unsaved"); btnTop.textContent = "💾 บันทึกขึ้น GitHub *"; }
+    if (btnBot) { btnBot.classList.add("has-unsaved"); btnBot.textContent = "💾 บันทึกขึ้น GitHub *"; }
+  } else if (state === "saving") {
+    hint.style.color = "#60a5fa";
+    hint.textContent = "⏳ กำลังบันทึกและอัปโหลดขึ้น GitHub...";
+    if (btnTop) btnTop.textContent = "⏳ กำลังบันทึก...";
+    if (btnBot) btnBot.textContent = "⏳ กำลังบันทึก...";
+  } else if (state === "saved") {
+    hint.style.color = "#34d399";
+    hint.textContent = "✓ บันทึกขึ้น GitHub แล้ว (" + new Date().toLocaleTimeString("th-TH") + ")";
+    if (btnTop) { btnTop.classList.remove("has-unsaved"); btnTop.textContent = "☁️ บันทึกขึ้น GitHub"; }
+    if (btnBot) { btnBot.classList.remove("has-unsaved"); btnBot.textContent = "☁️ บันทึกขึ้น GitHub"; }
+  } else if (state === "local") {
+    hint.style.color = "#fcd34d";
+    hint.textContent = "✓ บันทึกในเครื่องแล้ว (ยังไม่ได้เชื่อมต่อ GitHub)";
+    if (btnTop) { btnTop.classList.remove("has-unsaved"); btnTop.textContent = "☁️ บันทึกขึ้น GitHub"; }
+    if (btnBot) { btnBot.classList.remove("has-unsaved"); btnBot.textContent = "☁️ บันทึกขึ้น GitHub"; }
+  } else if (state === "error") {
+    hint.style.color = "#f87171";
+    hint.textContent = "⚠️ บันทึกไม่สำเร็จ" + (extraMsg ? ": " + extraMsg : "");
+    if (btnTop) { btnTop.classList.add("has-unsaved"); btnTop.textContent = "💾 ลองบันทึกอีกครั้ง"; }
+    if (btnBot) { btnBot.classList.add("has-unsaved"); btnBot.textContent = "💾 ลองบันทึกอีกครั้ง"; }
+  } else {
+    hint.style.color = "#94a3b8";
+    hint.textContent = isNewStoryDraft
+      ? "⚪ เรื่องใหม่ (จะถูกสร้างเมื่อคุณกดปุ่มบันทึก)"
+      : "⚪ ยังไม่มีการแก้ไข";
+    if (btnTop) { btnTop.classList.remove("has-unsaved"); btnTop.textContent = "☁️ บันทึกขึ้น GitHub"; }
+    if (btnBot) { btnBot.classList.remove("has-unsaved"); btnBot.textContent = "☁️ บันทึกขึ้น GitHub"; }
+  }
+}
+
+function setStorySaveButtonsDisabled(disabled) {
+  const ids = ["btnSaveStoryTop", "btnSaveStoryBottom", "btnPickFolder", "btnPickFiles", "btnPickAudio", "modalDeleteBtn"];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = disabled;
+  });
+}
+
+function markStoryDirty() {
+  hasUnsavedChanges = true;
+  updateModalSaveHint("dirty");
+}
+
+function onStoryFieldChange() {
+  if (!editingStoryDraft) return;
+  editingStoryDraft.channelId = document.getElementById("editChannelId").value;
+  editingStoryDraft.episode = document.getElementById("editEpisode").value;
+  editingStoryDraft.title = document.getElementById("editTitle").value;
+  editingStoryDraft.status = document.getElementById("editStatus").value;
+  markStoryDirty();
+}
+
+function clearPendingDraftQueues() {
+  pendingMediaItems.forEach(item => {
+    if (item && item.url) URL.revokeObjectURL(item.url);
+  });
+  pendingAudioItems.forEach(item => {
+    if (item && item.url) URL.revokeObjectURL(item.url);
+  });
+  pendingMediaItems = [];
+  pendingAudioItems = [];
+  pendingDeletePaths = [];
+}
+
 function openStoryModal(storyId) {
   const chSelect = document.getElementById("editChannelId");
   chSelect.innerHTML = appData.channels.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
 
-  let story;
+  clearPendingDraftQueues();
+  hasUnsavedChanges = false;
+
   const isNewStory = !storyId;
+  isNewStoryDraft = isNewStory;
 
   // จำตำแหน่งหน้าจอเดิมไว้ (ถ้าเพิ่มเรื่องใหม่ ให้ตั้งเป้ากลับขึ้นบนสุด)
   savedPageScrollY = isNewStory ? 0 : window.scrollY;
 
   if (storyId) {
-    story = appData.stories.find(s => s.id === storyId);
-    if (!story) return;
+    const existing = appData.stories.find(s => s.id === storyId);
+    if (!existing) return;
+    editingStoryDraft = JSON.parse(JSON.stringify(existing));
+    if (!editingStoryDraft.images) editingStoryDraft.images = [];
+    if (!editingStoryDraft.audios) editingStoryDraft.audios = [];
+    activeStoryId = editingStoryDraft.id;
     document.getElementById("modalHeaderTitle").textContent = "📖 อ่านและแก้ไขรายละเอียดเรื่องเล่า";
+    document.getElementById("modalDeleteBtn").style.display = "inline-flex";
   } else {
     const defaultCh = selectedChannelFilter !== "ALL"
       ? selectedChannelFilter
       : (appData.channels[0] ? appData.channels[0].id : "");
     const nextNum = appData.stories.filter(s => s.channelId === defaultCh).length + 1;
-    story = {
+    // สร้างแค่ร่างชั่วคราวในหน่วยความจำ ยังไม่เพิ่มเข้า appData และยังไม่บันทึกลง GitHub
+    editingStoryDraft = {
       id: "story_" + Date.now(),
       channelId: defaultCh,
       episode: "EP." + String(nextNum).padStart(2, "0"),
@@ -2229,29 +2358,24 @@ function openStoryModal(storyId) {
       audios: [],
       updatedAt: formatThaiNow()
     };
-    appData.stories.unshift(story);
-    currentPage = 1;
-    document.getElementById("modalHeaderTitle").textContent = "✨ เพิ่มเรื่องเล่าใหม่";
-    persistData();
-    renderAll();
+    activeStoryId = null;
+    document.getElementById("modalHeaderTitle").textContent = "✨ เพิ่มเรื่องเล่าใหม่ (ยังไม่บันทึก)";
+    document.getElementById("modalDeleteBtn").style.display = "none";
   }
 
-  if (!story.images) story.images = [];
-  if (!story.audios) story.audios = [];
-
-  activeStoryId = story.id;
-  document.getElementById("editChannelId").value = story.channelId;
-  document.getElementById("editEpisode").value = story.episode || "";
-  document.getElementById("editTitle").value = story.title || "";
-  document.getElementById("editStatus").value = story.status || "ร่างไอเดีย";
-  document.getElementById("wordEditor").innerHTML = story.contentHtml || "";
+  document.getElementById("editChannelId").value = editingStoryDraft.channelId;
+  document.getElementById("editEpisode").value = editingStoryDraft.episode || "";
+  document.getElementById("editTitle").value = editingStoryDraft.title || "";
+  document.getElementById("editStatus").value = editingStoryDraft.status || "ร่างไอเดีย";
+  document.getElementById("wordEditor").innerHTML = editingStoryDraft.contentHtml || "";
 
   document.getElementById("uploadProgressBox").classList.remove("active");
   document.getElementById("audioProgressBox").classList.remove("active");
 
   updateWordCount();
-  renderStoryGallery(story);
-  renderStoryAudios(story);
+  updateModalSaveHint("idle");
+  renderStoryGallery();
+  renderStoryAudios();
 
   // เด้งหน้าเว็บขึ้นบนสุดเฉพาะตอนกด "เพิ่มเรื่องใหม่"
   if (isNewStory) {
@@ -2261,7 +2385,7 @@ function openStoryModal(storyId) {
   const modal = document.getElementById("storyModal");
   const modalBody = document.getElementById("storyModalBody");
   modal.classList.add("open");
-  document.body.style.overflow = "hidden"; // ล็อกหน้าเว็บพื้นหลังไม่ให้เลื่อนหลุดตำแหน่ง
+  document.body.style.overflow = "hidden";
   modalBody.scrollTop = 0;
 
   requestAnimationFrame(() => {
@@ -2273,22 +2397,27 @@ function openStoryModal(storyId) {
   });
 }
 
-function closeStoryModal() {
-  if (isUploadingMedia || isUploadingAudio) {
-    if (!confirm("ระบบกำลังอัปโหลดไฟล์ขึ้น GitHub อยู่ หากปิดตอนนี้ไฟล์ที่เหลืออาจยังอัปโหลดไม่เสร็จ ต้องการปิดใช่หรือไม่?")) {
-      return;
-    }
+function closeStoryModal(forceClose = false) {
+  if (isSavingStory || isUploadingMedia || isUploadingAudio) {
+    alert("ระบบกำลังบันทึกและอัปโหลดไฟล์ขึ้น GitHub อยู่ กรุณารอจนเสร็จก่อนปิดหน้าต่างครับ");
+    return;
   }
-  if (autoSaveTimer) {
-    clearTimeout(autoSaveTimer);
-    commitStoryEdits(true);
+
+  if (!forceClose && hasUnsavedChanges) {
+    const ok = confirm("คุณยังไม่ได้กดบันทึก การแก้ไขและไฟล์ที่เพิ่มเข้ามาจะถูกยกเลิกทั้งหมด\nต้องการปิดหน้าต่างโดยไม่บันทึกใช่หรือไม่?");
+    if (!ok) return;
   }
+
+  clearPendingDraftQueues();
+  editingStoryDraft = null;
   activeStoryId = null;
+  isNewStoryDraft = false;
+  hasUnsavedChanges = false;
+
   document.getElementById("storyModal").classList.remove("open");
-  document.body.style.overflow = ""; // ปลดล็อกการเลื่อนหน้าเว็บ
+  document.body.style.overflow = "";
   renderAll();
 
-  // คืนตำแหน่งการเลื่อนหน้าจอกลับไปจุดเดิมที่เปิดอ่าน
   if (savedPageScrollY !== null) {
     const targetY = savedPageScrollY;
     savedPageScrollY = null;
@@ -2298,46 +2427,228 @@ function closeStoryModal() {
   }
 }
 
-function triggerStoryAutoSave() {
-  document.getElementById("modalAutoSaveHint").textContent = "⏳ กำลังบันทึก...";
-  if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  autoSaveTimer = setTimeout(() => {
-    commitStoryEdits(true);
-  }, 1000);
-}
+async function saveCurrentStoryAndNotify() {
+  if (!editingStoryDraft) return;
+  if (isSavingStory) return;
 
-function commitStoryEdits(saveToCloud = true) {
-  if (!activeStoryId) return;
-  const story = appData.stories.find(s => s.id === activeStoryId);
-  if (!story) return;
+  const hasPendingFiles = pendingMediaItems.length > 0 || pendingAudioItems.length > 0;
+  if (hasPendingFiles && !isGitHubConfigured()) {
+    alert("กรุณากรอกรหัส GitHub Token ในหน้าต่างเชื่อมต่อก่อนบันทึกไฟล์รูปภาพ/วีดีโอ/เสียงครับ");
+    openGitHubConfigModal();
+    return;
+  }
 
-  story.channelId = document.getElementById("editChannelId").value;
-  story.episode = document.getElementById("editEpisode").value.trim();
-  story.title = document.getElementById("editTitle").value.trim();
-  story.status = document.getElementById("editStatus").value;
-  story.contentHtml = document.getElementById("wordEditor").innerHTML;
-  story.updatedAt = formatThaiNow();
+  isSavingStory = true;
+  setStorySaveButtonsDisabled(true);
+  updateModalSaveHint("saving");
 
-  renderAll();
-  if (saveToCloud) persistData();
-}
+  try {
+    editingStoryDraft.channelId = document.getElementById("editChannelId").value;
+    editingStoryDraft.episode = document.getElementById("editEpisode").value.trim();
+    editingStoryDraft.title = document.getElementById("editTitle").value.trim();
+    editingStoryDraft.status = document.getElementById("editStatus").value;
+    editingStoryDraft.contentHtml = document.getElementById("wordEditor").innerHTML;
+    editingStoryDraft.updatedAt = formatThaiNow();
 
-function saveCurrentStoryAndNotify() {
-  if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  commitStoryEdits(true);
+    const skippedLarge = [];
+    const failedFiles = [];
+
+    // 1. ลบไฟล์ที่ผู้ใช้กดลบระหว่างแก้ไขออกจาก GitHub ก่อน
+    if (isGitHubConfigured() && pendingDeletePaths.length > 0) {
+      const toDelete = [...pendingDeletePaths];
+      pendingDeletePaths = [];
+      for (const delPath of toDelete) {
+        if (editingStoryDraft.images.includes(delPath) || editingStoryDraft.audios.includes(delPath)) {
+          continue;
+        }
+        await deleteFileFromGitHub(delPath).catch(() => {});
+      }
+    }
+
+    // 2. อัปโหลดรูปภาพ & วีดีโอที่รอไว้ขึ้น GitHub
+    if (pendingMediaItems.length > 0) {
+      isUploadingMedia = true;
+      let maxSeq = getSavedMediaMaxSeq();
+      const itemsToUpload = [...pendingMediaItems];
+      const remainingFailedMedia = [];
+      let uploadedCount = 0;
+
+      for (let i = 0; i < itemsToUpload.length; i++) {
+        const item = itemsToUpload[i];
+        const file = item.file;
+        if (file.size > MAX_GITHUB_FILE_BYTES) {
+          skippedLarge.push(`${file.name} (${formatBytes(file.size)})`);
+          URL.revokeObjectURL(item.url);
+          continue;
+        }
+
+        const nextNum = maxSeq + 1;
+        const ext = getConvertedExtension(file.name);
+        const repoPath = `media/${editingStoryDraft.id}/${nextNum}${ext}`;
+
+        updateModalUploadProgress(
+          i,
+          itemsToUpload.length,
+          `⏳ กำลังอัปโหลดภาพ ${i + 1} / ${itemsToUpload.length} : ${file.name} → ${nextNum}${ext}`,
+          `ขนาดไฟล์ ${formatBytes(file.size)}`
+        );
+        setSaveStatus("saving", `⏳ อัปโหลดภาพ ${i + 1}/${itemsToUpload.length} (${nextNum}${ext})...`);
+
+        try {
+          const b64 = await fileToBase64Raw(file);
+          await uploadSingleFileWithRetry(repoPath, b64);
+
+          maxSeq = nextNum;
+          uploadedCount++;
+          mediaBlobCache[repoPath] = { blob: file, url: item.url };
+          if (!editingStoryDraft.images.includes(repoPath)) {
+            editingStoryDraft.images.push(repoPath);
+          }
+          await sleep(350);
+        } catch (err) {
+          failedFiles.push(`${file.name}: ${err.message}`);
+          remainingFailedMedia.push(item);
+        }
+      }
+
+      pendingMediaItems = remainingFailedMedia;
+      isUploadingMedia = false;
+
+      updateModalUploadProgress(
+        itemsToUpload.length,
+        itemsToUpload.length,
+        `✅ อัปโหลดภาพเสร็จสมบูรณ์ ${uploadedCount} จาก ${itemsToUpload.length} ไฟล์!`,
+        "กำลังซ่อนแถบสถานะ..."
+      );
+    }
+
+    // 3. อัปโหลดไฟล์เสียงที่รอไว้ขึ้น GitHub
+    if (pendingAudioItems.length > 0) {
+      isUploadingAudio = true;
+      const itemsToUpload = [...pendingAudioItems];
+      const remainingFailedAudio = [];
+      let uploadedCount = 0;
+
+      for (let i = 0; i < itemsToUpload.length; i++) {
+        const item = itemsToUpload[i];
+        const file = item.file;
+        if (file.size > MAX_GITHUB_FILE_BYTES) {
+          skippedLarge.push(`${file.name} (${formatBytes(file.size)})`);
+          URL.revokeObjectURL(item.url);
+          continue;
+        }
+
+        const safeFileName = item.safeFileName;
+        const repoPath = `audio/${editingStoryDraft.id}/${safeFileName}`;
+
+        updateModalAudioProgress(
+          i,
+          itemsToUpload.length,
+          `⏳ กำลังอัปโหลดไฟล์เสียง ${i + 1} / ${itemsToUpload.length} : ${safeFileName}`,
+          `ขนาดไฟล์ ${formatBytes(file.size)}`
+        );
+        setSaveStatus("saving", `⏳ อัปโหลดเสียง ${i + 1}/${itemsToUpload.length}...`);
+
+        try {
+          const b64 = await fileToBase64Raw(file);
+          await uploadSingleFileWithRetry(repoPath, b64);
+
+          uploadedCount++;
+          mediaBlobCache[repoPath] = { blob: file, url: item.url };
+          if (!editingStoryDraft.audios.includes(repoPath)) {
+            editingStoryDraft.audios.push(repoPath);
+          }
+          await sleep(300);
+        } catch (err) {
+          failedFiles.push(`${file.name}: ${err.message}`);
+          remainingFailedAudio.push(item);
+        }
+      }
+
+      pendingAudioItems = remainingFailedAudio;
+      isUploadingAudio = false;
+
+      updateModalAudioProgress(
+        itemsToUpload.length,
+        itemsToUpload.length,
+        `✅ อัปโหลดไฟล์เสียงเสร็จสมบูรณ์ ${uploadedCount} จาก ${itemsToUpload.length} ไฟล์!`,
+        "กำลังซ่อนแถบสถานะ..."
+      );
+    }
+
+    // 4. นำข้อมูลที่บันทึกแล้วเข้าฐานข้อมูลหลัก appData.stories
+    const committedStory = JSON.parse(JSON.stringify(editingStoryDraft));
+    if (isNewStoryDraft) {
+      appData.stories.unshift(committedStory);
+      isNewStoryDraft = false;
+      activeStoryId = committedStory.id;
+      currentPage = 1;
+      document.getElementById("modalHeaderTitle").textContent = "📖 อ่านและแก้ไขรายละเอียดเรื่องเล่า";
+      document.getElementById("modalDeleteBtn").style.display = "inline-flex";
+    } else {
+      const idx = appData.stories.findIndex(s => s.id === editingStoryDraft.id);
+      if (idx !== -1) {
+        appData.stories[idx] = committedStory;
+      } else {
+        appData.stories.unshift(committedStory);
+      }
+    }
+
+    renderAll();
+    renderStoryGallery();
+    renderStoryAudios();
+
+    // 5. บันทึกไฟล์ stories_data.json ขึ้น GitHub
+    const saveResult = await persistData();
+    const stillHasPending = pendingMediaItems.length > 0 || pendingAudioItems.length > 0;
+
+    if (saveResult.ok && !stillHasPending) {
+      hasUnsavedChanges = false;
+      updateModalSaveHint("saved");
+    } else if (!isGitHubConfigured() && !stillHasPending) {
+      hasUnsavedChanges = false;
+      updateModalSaveHint("local");
+    } else {
+      hasUnsavedChanges = true;
+      updateModalSaveHint("error", saveResult.error || "มีบางไฟล์ยังอัปโหลดไม่เสร็จ");
+      if (saveResult.error && isGitHubConfigured()) {
+        alert("บันทึกฐานข้อมูลขึ้น GitHub ไม่สำเร็จ: " + saveResult.error);
+      }
+    }
+
+    if (skippedLarge.length > 0) {
+      alert("ไฟล์ต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกอัปโหลด:\n- " + skippedLarge.join("\n- "));
+    }
+    if (failedFiles.length > 0) {
+      alert("มีบางไฟล์อัปโหลดไม่สำเร็จ (ยังค้างไว้ให้กดบันทึกลองใหม่ได้):\n- " + failedFiles.join("\n- "));
+    }
+  } finally {
+    isUploadingMedia = false;
+    isUploadingAudio = false;
+    isSavingStory = false;
+    setStorySaveButtonsDisabled(false);
+  }
 }
 
 function deleteCurrentStoryFromModal() {
-  if (!activeStoryId) return;
-  const id = activeStoryId;
-  closeStoryModal();
-  deleteStoryById(id);
+  if (!editingStoryDraft) return;
+  if (isNewStoryDraft) {
+    closeStoryModal(true);
+    return;
+  }
+  const id = editingStoryDraft.id;
+  const targetTitle = editingStoryDraft.title || editingStoryDraft.episode || "(ไม่มีชื่อเรื่อง)";
+  if (!confirm(`ต้องการลบเรื่อง "${targetTitle}" และไฟล์ภาพ/เสียงทั้งหมดของเรื่องนี้บน GitHub ใช่หรือไม่?`)) return;
+  closeStoryModal(true);
+  deleteStoryById(id, true);
 }
 
-async function deleteStoryById(storyId) {
+async function deleteStoryById(storyId, skipConfirm = false) {
   const story = appData.stories.find(s => s.id === storyId);
   if (!story) return;
-  if (!confirm(`ต้องการลบเรื่อง "${story.title || story.episode}" และไฟล์ภาพ/เสียงทั้งหมดของเรื่องนี้บน GitHub ใช่หรือไม่?`)) return;
+  if (!skipConfirm) {
+    if (!confirm(`ต้องการลบเรื่อง "${story.title || story.episode}" และไฟล์ภาพ/เสียงทั้งหมดของเรื่องนี้บน GitHub ใช่หรือไม่?`)) return;
+  }
 
   const filesToDelete = [...(story.images || []), ...(story.audios || [])];
   appData.stories = appData.stories.filter(s => s.id !== storyId);
@@ -2375,7 +2686,10 @@ function execCmd(command, value = null) {
 
 function onEditorInput() {
   updateWordCount();
-  triggerStoryAutoSave();
+  if (editingStoryDraft) {
+    editingStoryDraft.contentHtml = document.getElementById("wordEditor").innerHTML;
+    markStoryDirty();
+  }
 }
 
 function updateWordCount() {
@@ -2430,7 +2744,18 @@ function traverseFileTree(item, fileList, filterFn) {
   });
 }
 
-// ================= IMAGE & VIDEO UPLOAD =================
+// ================= IMAGE & VIDEO STAGING & UPLOAD =================
+function getSavedMediaMaxSeq() {
+  let maxSeq = 0;
+  if (!editingStoryDraft || !editingStoryDraft.images) return 0;
+  for (const existingPath of editingStoryDraft.images) {
+    const base = existingPath.split("/").pop().split(".")[0];
+    const num = parseInt(base, 10);
+    if (!isNaN(num) && num > maxSeq) maxSeq = num;
+  }
+  return maxSeq;
+}
+
 function setupDropzone() {
   const dz = document.getElementById("imageDropzone");
   dz.addEventListener("dragover", e => {
@@ -2441,7 +2766,7 @@ function setupDropzone() {
   dz.addEventListener("drop", async e => {
     e.preventDefault();
     dz.classList.remove("dragover");
-    if (!activeStoryId) return;
+    if (!editingStoryDraft) return;
 
     const items = e.dataTransfer.items;
     const collectedFiles = [];
@@ -2462,18 +2787,57 @@ function setupDropzone() {
     }
 
     if (collectedFiles.length > 0) {
-      await uploadMediaFilesToGitHub(collectedFiles);
+      stageMediaFiles(collectedFiles);
     } else {
       alert("ไม่พบไฟล์รูปภาพหรือวีดีโอที่รองรับในโฟลเดอร์ที่ลากมาวาง");
     }
   });
 }
 
-async function handleManualFileSelect(inputEl) {
+function handleManualFileSelect(inputEl) {
   const files = Array.from(inputEl.files || []).filter(f => isMediaFile(f.name));
   inputEl.value = "";
   if (files.length > 0) {
-    await uploadMediaFilesToGitHub(files);
+    stageMediaFiles(files);
+  }
+}
+
+function stageMediaFiles(files) {
+  if (!editingStoryDraft) return;
+  if (isSavingStory) {
+    alert("กำลังบันทึกอยู่ กรุณารอสักครู่ครับ");
+    return;
+  }
+
+  files.sort((a, b) => {
+    if (a.lastModified !== b.lastModified) return a.lastModified - b.lastModified;
+    return a.name.localeCompare(b.name, undefined, { numeric: true });
+  });
+
+  const skippedLarge = [];
+  let added = 0;
+
+  for (const file of files) {
+    if (file.size > MAX_GITHUB_FILE_BYTES) {
+      skippedLarge.push(`${file.name} (${formatBytes(file.size)})`);
+      continue;
+    }
+    pendingMediaItems.push({
+      tempId: "pm_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+      file,
+      url: URL.createObjectURL(file),
+      isVideo: isVideoFile(file.name)
+    });
+    added++;
+  }
+
+  if (added > 0) {
+    applyAutoProductionStatusDraft();
+    markStoryDirty();
+    renderStoryGallery();
+  }
+  if (skippedLarge.length > 0) {
+    alert("ไฟล์ต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกเพิ่ม:\n- " + skippedLarge.join("\n- "));
   }
 }
 
@@ -2495,7 +2859,6 @@ function updateModalUploadProgress(current, total, statusText, subText = "") {
   fill.style.width = `${percent}%`;
   if (subText) sub.textContent = subText;
 
-  // เมื่อครบ 100% ให้ซ่อนแถบสถานะอัตโนมัติ
   if (total > 0 && current >= total) {
     mediaHideTimer = setTimeout(() => {
       box.classList.remove("active");
@@ -2545,120 +2908,19 @@ async function uploadSingleFileWithRetry(repoPath, b64Content) {
   throw new Error("GitHub API ตอบสนองช้าหรือติดลิมิตชั่วคราว กรุณาลองใหม่อีกครั้ง");
 }
 
-async function uploadMediaFilesToGitHub(files) {
-  if (isUploadingMedia) {
-    alert("กำลังอัปโหลดชุดก่อนหน้าอยู่ กรุณารอสักครู่ครับ");
-    return;
-  }
+function renderStoryGallery() {
+  if (!editingStoryDraft) return;
+  const savedMedia = editingStoryDraft.images || [];
+  const totalCount = savedMedia.length + pendingMediaItems.length;
+  const vidCount = savedMedia.filter(p => isVideoFile(p)).length + pendingMediaItems.filter(p => p.isVideo).length;
+  const imgCount = totalCount - vidCount;
 
-  const story = appData.stories.find(s => s.id === activeStoryId);
-  if (!story) return;
-  if (!story.images) story.images = [];
-
-  if (!isGitHubConfigured()) {
-    alert("กรุณากรอกรหัส GitHub Token ในหน้าต่างเชื่อมต่อก่อนอัปโหลดไฟล์ครับ");
-    openGitHubConfigModal();
-    return;
-  }
-
-  isUploadingMedia = true;
-  document.getElementById("btnPickFolder").disabled = true;
-  document.getElementById("btnPickFiles").disabled = true;
-
-  files.sort((a, b) => {
-    if (a.lastModified !== b.lastModified) return a.lastModified - b.lastModified;
-    return a.name.localeCompare(b.name, undefined, { numeric: true });
-  });
-
-  let maxSeq = 0;
-  for (const existingPath of story.images) {
-    const base = existingPath.split("/").pop().split(".")[0];
-    const num = parseInt(base, 10);
-    if (!isNaN(num) && num > maxSeq) maxSeq = num;
-  }
-
-  const skippedLarge = [];
-  const failedFiles = [];
-  let uploadedCount = 0;
-
-  try {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (file.size > MAX_GITHUB_FILE_BYTES) {
-        skippedLarge.push(`${file.name} (${formatBytes(file.size)})`);
-        continue;
-      }
-
-      const nextNum = maxSeq + 1;
-      const ext = getConvertedExtension(file.name);
-      const repoPath = `media/${story.id}/${nextNum}${ext}`;
-
-      updateModalUploadProgress(
-        i,
-        files.length,
-        `⏳ กำลังอัปโหลดภาพ ${i + 1} / ${files.length} : ${file.name} → ${nextNum}${ext}`,
-        `ขนาดไฟล์ ${formatBytes(file.size)}`
-      );
-      setSaveStatus("saving", `⏳ อัปโหลดภาพ ${i + 1}/${files.length} (${nextNum}${ext})...`);
-
-      try {
-        const b64 = await fileToBase64Raw(file);
-        await uploadSingleFileWithRetry(repoPath, b64);
-
-        maxSeq = nextNum;
-        uploadedCount++;
-        mediaBlobCache[repoPath] = { blob: file, url: URL.createObjectURL(file) };
-        if (!story.images.includes(repoPath)) {
-          story.images.push(repoPath);
-        }
-
-        if (uploadedCount % 5 === 0) {
-          applyAutoProductionStatus(story);
-          renderStoryGallery(story);
-          await commitStoryEdits(true);
-        }
-
-        await sleep(350);
-      } catch (err) {
-        failedFiles.push(`${file.name}: ${err.message}`);
-      }
-    }
-
-    if (uploadedCount > 0) {
-      applyAutoProductionStatus(story);
-    }
-    renderStoryGallery(story);
-    await commitStoryEdits(true);
-
-    updateModalUploadProgress(
-      files.length,
-      files.length,
-      `✅ อัปโหลดภาพเสร็จสมบูรณ์ ${uploadedCount} จาก ${files.length} ไฟล์!`,
-      "กำลังซ่อนแถบสถานะ..."
-    );
-
-    if (skippedLarge.length > 0) {
-      alert("ไฟล์ต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกอัปโหลด:\n- " + skippedLarge.join("\n- "));
-    }
-    if (failedFiles.length > 0) {
-      alert("มีบางไฟล์อัปโหลดไม่สำเร็จ:\n- " + failedFiles.join("\n- "));
-    }
-  } finally {
-    isUploadingMedia = false;
-    document.getElementById("btnPickFolder").disabled = false;
-    document.getElementById("btnPickFiles").disabled = false;
-  }
-}
-
-function renderStoryGallery(story) {
-  const media = story.images || [];
-  const vidCount = media.filter(p => isVideoFile(p)).length;
-  const imgCount = media.length - vidCount;
+  const pendingLabel = pendingMediaItems.length > 0 ? ` • รอบันทึก ${pendingMediaItems.length}` : "";
   document.getElementById("storyImageCount").textContent =
-    `${media.length} ไฟล์ (รูป ${imgCount} • วีดีโอ ${vidCount})`;
+    `${totalCount} ไฟล์ (รูป ${imgCount} • วีดีโอ ${vidCount}${pendingLabel})`;
 
   const grid = document.getElementById("storyGalleryGrid");
-  grid.innerHTML = media.map((mediaPath, idx) => {
+  const savedHtml = savedMedia.map((mediaPath, idx) => {
     const fileName = mediaPath.split("/").pop();
     const isVid = isVideoFile(fileName);
     const cached = mediaBlobCache[mediaPath];
@@ -2682,13 +2944,33 @@ function renderStoryGallery(story) {
         ${previewHtml}
         <div class="img-card-foot">
           <span class="img-name" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span>
-          <button type="button" class="sched-del" title="ลบไฟล์นี้" onclick="removeStoryImage(${idx})">🗑️</button>
+          <button type="button" class="sched-del" title="ลบไฟล์นี้" onclick="removeSavedStoryImage(${idx})">🗑️</button>
         </div>
       </div>
     `;
   }).join("");
 
-  media.forEach((mediaPath, idx) => {
+  const baseSeq = getSavedMediaMaxSeq();
+  const pendingHtml = pendingMediaItems.map((item, idx) => {
+    const predictedName = `${baseSeq + idx + 1}${getConvertedExtension(item.file.name)}`;
+    const previewHtml = item.isVideo
+      ? `<span class="media-type-badge">🎬 วีดีโอ</span><span class="pending-badge">รอบันทึก</span><video src="${item.url}#t=0.5" muted preload="metadata" onclick="openPendingMediaLightbox('${item.tempId}')"></video>`
+      : `<span class="media-type-badge">🖼️ รูปภาพ</span><span class="pending-badge">รอบันทึก</span><img src="${item.url}" alt="${escapeHtml(predictedName)}" onclick="openPendingMediaLightbox('${item.tempId}')">`;
+
+    return `
+      <div class="img-card pending-card">
+        ${previewHtml}
+        <div class="img-card-foot">
+          <span class="img-name" title="${escapeHtml(item.file.name)} → ${escapeHtml(predictedName)}">${escapeHtml(predictedName)}</span>
+          <button type="button" class="sched-del" title="นำออกก่อนบันทึก" onclick="removePendingStoryImage('${item.tempId}')">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  grid.innerHTML = savedHtml + pendingHtml;
+
+  savedMedia.forEach((mediaPath, idx) => {
     if (mediaBlobCache[mediaPath]) return;
     const isVid = isVideoFile(mediaPath);
     fetchPrivateMediaBlob(mediaPath).then(item => {
@@ -2706,25 +2988,35 @@ function renderStoryGallery(story) {
   });
 }
 
+function showLightboxUrl(url, isVideo) {
+  const lb = document.getElementById("lightbox");
+  const img = document.getElementById("lightboxImg");
+  const vid = document.getElementById("lightboxVideo");
+  if (isVideo) {
+    img.style.display = "none";
+    vid.style.display = "block";
+    vid.src = url;
+  } else {
+    vid.pause();
+    vid.style.display = "none";
+    img.style.display = "block";
+    img.src = url;
+  }
+  lb.classList.add("open");
+}
+
+function openPendingMediaLightbox(tempId) {
+  const item = pendingMediaItems.find(p => p.tempId === tempId);
+  if (!item) return;
+  showLightboxUrl(item.url, item.isVideo);
+}
+
 async function openMediaLightbox(mediaPath, isVideo) {
   try {
     setSaveStatus("saving", "⏳ กำลังเปิดไฟล์จาก GitHub...");
     const item = await fetchPrivateMediaBlob(mediaPath);
     setSaveStatus("saved", "🟢 ซิงก์ GitHub แล้ว");
-    const lb = document.getElementById("lightbox");
-    const img = document.getElementById("lightboxImg");
-    const vid = document.getElementById("lightboxVideo");
-    if (isVideo) {
-      img.style.display = "none";
-      vid.style.display = "block";
-      vid.src = item.url;
-    } else {
-      vid.pause();
-      vid.style.display = "none";
-      img.style.display = "block";
-      img.src = item.url;
-    }
-    lb.classList.add("open");
+    showLightboxUrl(item.url, isVideo);
   } catch (err) {
     alert(err.message);
   }
@@ -2739,21 +3031,30 @@ function closeLightbox(e) {
   lb.classList.remove("open");
 }
 
-async function removeStoryImage(idx) {
-  const story = appData.stories.find(s => s.id === activeStoryId);
-  if (!story || !story.images) return;
-  const mediaPath = story.images[idx];
-  story.images.splice(idx, 1);
-  renderStoryGallery(story);
-  await commitStoryEdits(true);
-  if (isGitHubConfigured() && mediaPath) {
-    deleteFileFromGitHub(mediaPath).catch(() => {});
+function removeSavedStoryImage(idx) {
+  if (!editingStoryDraft || !editingStoryDraft.images) return;
+  const mediaPath = editingStoryDraft.images[idx];
+  editingStoryDraft.images.splice(idx, 1);
+  if (mediaPath && !pendingDeletePaths.includes(mediaPath)) {
+    pendingDeletePaths.push(mediaPath);
   }
+  markStoryDirty();
+  renderStoryGallery();
+}
+
+function removePendingStoryImage(tempId) {
+  const idx = pendingMediaItems.findIndex(p => p.tempId === tempId);
+  if (idx === -1) return;
+  const removed = pendingMediaItems.splice(idx, 1)[0];
+  if (removed && removed.url) URL.revokeObjectURL(removed.url);
+  markStoryDirty();
+  renderStoryGallery();
 }
 
 async function downloadStoryMediaZip() {
-  const story = appData.stories.find(s => s.id === activeStoryId);
-  if (!story || !story.images || story.images.length === 0) {
+  if (!editingStoryDraft) return;
+  const savedMedia = editingStoryDraft.images || [];
+  if (savedMedia.length === 0 && pendingMediaItems.length === 0) {
     alert("เรื่องนี้ยังไม่มีไฟล์รูปภาพหรือวีดีโอให้ดาวน์โหลดครับ");
     return;
   }
@@ -2762,15 +3063,21 @@ async function downloadStoryMediaZip() {
 
   try {
     const entries = [];
-    for (let i = 0; i < story.images.length; i++) {
-      const mPath = story.images[i];
+    for (let i = 0; i < savedMedia.length; i++) {
+      const mPath = savedMedia[i];
       const fname = mPath.split("/").pop();
-      btn.textContent = `⏳ กำลังดึงไฟล์ ${i + 1}/${story.images.length}...`;
+      btn.textContent = `⏳ กำลังดึงไฟล์ ${i + 1}/${savedMedia.length + pendingMediaItems.length}...`;
       const item = await fetchPrivateMediaBlob(mPath);
       entries.push({ name: fname, blob: item.blob, lastModified: Date.now() });
     }
+    const baseSeq = getSavedMediaMaxSeq();
+    pendingMediaItems.forEach((pItem, idx) => {
+      const fname = `${baseSeq + idx + 1}${getConvertedExtension(pItem.file.name)}`;
+      entries.push({ name: fname, blob: pItem.file, lastModified: pItem.file.lastModified || Date.now() });
+    });
+
     btn.textContent = "📦 กำลังแพ็กเป็นไฟล์ .ZIP...";
-    const zipLabel = [story.episode, story.title].filter(Boolean).join("_") || story.id;
+    const zipLabel = [editingStoryDraft.episode, editingStoryDraft.title].filter(Boolean).join("_") || editingStoryDraft.id;
     await buildAndDownloadZip(entries, zipLabel);
   } catch (err) {
     alert("ดาวน์โหลดไฟล์ไม่สำเร็จ: " + err.message);
@@ -2780,7 +3087,7 @@ async function downloadStoryMediaZip() {
   }
 }
 
-// ================= VOICE / AUDIO UPLOAD & DOWNLOAD =================
+// ================= VOICE / AUDIO STAGING & DOWNLOAD =================
 function setupAudioDropzone() {
   const dz = document.getElementById("audioDropzone");
   dz.addEventListener("dragover", e => {
@@ -2791,7 +3098,7 @@ function setupAudioDropzone() {
   dz.addEventListener("drop", async e => {
     e.preventDefault();
     dz.classList.remove("dragover");
-    if (!activeStoryId) return;
+    if (!editingStoryDraft) return;
 
     const items = e.dataTransfer.items;
     const collectedFiles = [];
@@ -2812,18 +3119,64 @@ function setupAudioDropzone() {
     }
 
     if (collectedFiles.length > 0) {
-      await uploadAudioFilesToGitHub(collectedFiles);
+      stageAudioFiles(collectedFiles);
     } else {
       alert("ไม่พบไฟล์เสียงที่รองรับ (.mp3, .wav, .m4a, .aac, .ogg) ในไฟล์ที่ลากมาวาง");
     }
   });
 }
 
-async function handleManualAudioSelect(inputEl) {
+function handleManualAudioSelect(inputEl) {
   const files = Array.from(inputEl.files || []).filter(f => isAudioFile(f.name));
   inputEl.value = "";
   if (files.length > 0) {
-    await uploadAudioFilesToGitHub(files);
+    stageAudioFiles(files);
+  }
+}
+
+function stageAudioFiles(files) {
+  if (!editingStoryDraft) return;
+  if (isSavingStory) {
+    alert("กำลังบันทึกอยู่ กรุณารอสักครู่ครับ");
+    return;
+  }
+
+  files.sort((a, b) => {
+    if (a.lastModified !== b.lastModified) return a.lastModified - b.lastModified;
+    return a.name.localeCompare(b.name, undefined, { numeric: true });
+  });
+
+  const skippedLarge = [];
+  let added = 0;
+
+  for (const file of files) {
+    if (file.size > MAX_GITHUB_FILE_BYTES) {
+      skippedLarge.push(`${file.name} (${formatBytes(file.size)})`);
+      continue;
+    }
+    const safeFileName = file.name.replace(/[\\/*?:"<>|#%]/g, "_").trim() || `voice_${Date.now()}.mp3`;
+    const dupIdx = pendingAudioItems.findIndex(p => p.safeFileName === safeFileName);
+    if (dupIdx !== -1) {
+      URL.revokeObjectURL(pendingAudioItems[dupIdx].url);
+      pendingAudioItems.splice(dupIdx, 1);
+    }
+
+    pendingAudioItems.push({
+      tempId: "pa_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+      file,
+      safeFileName,
+      url: URL.createObjectURL(file)
+    });
+    added++;
+  }
+
+  if (added > 0) {
+    applyAutoProductionStatusDraft();
+    markStoryDirty();
+    renderStoryAudios();
+  }
+  if (skippedLarge.length > 0) {
+    alert("ไฟล์เสียงต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกเพิ่ม:\n- " + skippedLarge.join("\n- "));
   }
 }
 
@@ -2845,7 +3198,6 @@ function updateModalAudioProgress(current, total, statusText, subText = "") {
   fill.style.width = `${percent}%`;
   if (subText) sub.textContent = subText;
 
-  // เมื่อครบ 100% ให้ซ่อนแถบสถานะอัตโนมัติ
   if (total > 0 && current >= total) {
     audioHideTimer = setTimeout(() => {
       box.classList.remove("active");
@@ -2854,105 +3206,20 @@ function updateModalAudioProgress(current, total, statusText, subText = "") {
   }
 }
 
-async function uploadAudioFilesToGitHub(files) {
-  if (isUploadingAudio) {
-    alert("กำลังอัปโหลดไฟล์เสียงชุดก่อนหน้าอยู่ กรุณารอสักครู่ครับ");
-    return;
-  }
-
-  const story = appData.stories.find(s => s.id === activeStoryId);
-  if (!story) return;
-  if (!story.audios) story.audios = [];
-
-  if (!isGitHubConfigured()) {
-    alert("กรุณากรอกรหัส GitHub Token ในหน้าต่างเชื่อมต่อก่อนอัปโหลดไฟล์เสียงครับ");
-    openGitHubConfigModal();
-    return;
-  }
-
-  isUploadingAudio = true;
-  document.getElementById("btnPickAudio").disabled = true;
-
-  files.sort((a, b) => {
-    if (a.lastModified !== b.lastModified) return a.lastModified - b.lastModified;
-    return a.name.localeCompare(b.name, undefined, { numeric: true });
-  });
-
-  const skippedLarge = [];
-  const failedFiles = [];
-  let uploadedCount = 0;
-
-  try {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (file.size > MAX_GITHUB_FILE_BYTES) {
-        skippedLarge.push(`${file.name} (${formatBytes(file.size)})`);
-        continue;
-      }
-
-      const safeFileName = file.name.replace(/[\\/*?:"<>|#%]/g, "_").trim() || `voice_${Date.now()}.mp3`;
-      const repoPath = `audio/${story.id}/${safeFileName}`;
-
-      updateModalAudioProgress(
-        i,
-        files.length,
-        `⏳ กำลังอัปโหลดไฟล์เสียง ${i + 1} / ${files.length} : ${safeFileName}`,
-        `ขนาดไฟล์ ${formatBytes(file.size)}`
-      );
-      setSaveStatus("saving", `⏳ อัปโหลดเสียง ${i + 1}/${files.length}...`);
-
-      try {
-        const b64 = await fileToBase64Raw(file);
-        await uploadSingleFileWithRetry(repoPath, b64);
-
-        uploadedCount++;
-        mediaBlobCache[repoPath] = { blob: file, url: URL.createObjectURL(file) };
-        if (!story.audios.includes(repoPath)) {
-          story.audios.push(repoPath);
-        }
-
-        await sleep(300);
-      } catch (err) {
-        failedFiles.push(`${file.name}: ${err.message}`);
-      }
-    }
-
-    if (uploadedCount > 0) {
-      applyAutoProductionStatus(story);
-    }
-    renderStoryAudios(story);
-    await commitStoryEdits(true);
-
-    updateModalAudioProgress(
-      files.length,
-      files.length,
-      `✅ อัปโหลดไฟล์เสียงเสร็จสมบูรณ์ ${uploadedCount} จาก ${files.length} ไฟล์!`,
-      "กำลังซ่อนแถบสถานะ..."
-    );
-
-    if (skippedLarge.length > 0) {
-      alert("ไฟล์เสียงต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกอัปโหลด:\n- " + skippedLarge.join("\n- "));
-    }
-    if (failedFiles.length > 0) {
-      alert("มีบางไฟล์เสียงอัปโหลดไม่สำเร็จ:\n- " + failedFiles.join("\n- "));
-    }
-  } finally {
-    isUploadingAudio = false;
-    document.getElementById("btnPickAudio").disabled = false;
-  }
-}
-
-function renderStoryAudios(story) {
-  const audios = story.audios || [];
-  document.getElementById("storyAudioCount").textContent = `${audios.length} ไฟล์`;
+function renderStoryAudios() {
+  if (!editingStoryDraft) return;
+  const savedAudios = editingStoryDraft.audios || [];
+  const totalCount = savedAudios.length + pendingAudioItems.length;
+  const pendingLabel = pendingAudioItems.length > 0 ? ` (รอบันทึก ${pendingAudioItems.length})` : "";
+  document.getElementById("storyAudioCount").textContent = `${totalCount} ไฟล์${pendingLabel}`;
 
   const listEl = document.getElementById("storyAudioList");
-  if (audios.length === 0) {
+  if (totalCount === 0) {
     listEl.innerHTML = "";
     return;
   }
 
-  listEl.innerHTML = audios.map((audioPath, idx) => {
+  const savedHtml = savedAudios.map((audioPath, idx) => {
     const fileName = audioPath.split("/").pop();
     const cached = mediaBlobCache[audioPath];
 
@@ -2971,13 +3238,32 @@ function renderStoryAudios(story) {
         </div>
         <div style="display:flex; gap:6px;">
           <button type="button" class="btn btn-success btn-sm" onclick="downloadSingleAudio('${audioPath}')">⬇️ โหลดเสียง</button>
-          <button type="button" class="btn btn-danger btn-sm" onclick="removeStoryAudio(${idx})">ลบ</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="removeSavedStoryAudio(${idx})">ลบ</button>
         </div>
       </div>
     `;
   }).join("");
 
-  audios.forEach((audioPath, idx) => {
+  const pendingHtml = pendingAudioItems.map(item => `
+    <div class="audio-row pending-card">
+      <div class="audio-info">
+        <span>🎵</span>
+        <span title="${escapeHtml(item.safeFileName)}">${escapeHtml(item.safeFileName)}</span>
+        <span class="pending-audio-tag">รอบันทึก</span>
+      </div>
+      <div class="audio-player-slot">
+        <audio controls src="${item.url}"></audio>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="btn btn-success btn-sm" onclick="downloadPendingAudio('${item.tempId}')">⬇️ โหลดเสียง</button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removePendingStoryAudio('${item.tempId}')">ลบ</button>
+      </div>
+    </div>
+  `).join("");
+
+  listEl.innerHTML = savedHtml + pendingHtml;
+
+  savedAudios.forEach((audioPath, idx) => {
     if (mediaBlobCache[audioPath]) return;
     fetchPrivateMediaBlob(audioPath).then(item => {
       const slot = document.getElementById(`audio_slot_${idx}`);
@@ -2988,6 +3274,17 @@ function renderStoryAudios(story) {
       if (slot) slot.textContent = "⚠️ กดปุ่มโหลดเสียงเพื่อดาวน์โหลดไฟล์";
     });
   });
+}
+
+function downloadPendingAudio(tempId) {
+  const item = pendingAudioItems.find(p => p.tempId === tempId);
+  if (!item) return;
+  const a = document.createElement("a");
+  a.href = item.url;
+  a.download = item.safeFileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 async function downloadSingleAudio(audioPath) {
@@ -3008,14 +3305,20 @@ async function downloadSingleAudio(audioPath) {
 }
 
 async function downloadAllStoryAudios() {
-  const story = appData.stories.find(s => s.id === activeStoryId);
-  if (!story || !story.audios || story.audios.length === 0) {
+  if (!editingStoryDraft) return;
+  const savedAudios = editingStoryDraft.audios || [];
+  const totalCount = savedAudios.length + pendingAudioItems.length;
+  if (totalCount === 0) {
     alert("เรื่องนี้ยังไม่มีไฟล์เสียงให้ดาวน์โหลดครับ");
     return;
   }
 
-  if (story.audios.length === 1) {
-    await downloadSingleAudio(story.audios[0]);
+  if (totalCount === 1) {
+    if (savedAudios.length === 1) {
+      await downloadSingleAudio(savedAudios[0]);
+    } else {
+      downloadPendingAudio(pendingAudioItems[0].tempId);
+    }
     return;
   }
 
@@ -3023,15 +3326,19 @@ async function downloadAllStoryAudios() {
   btn.disabled = true;
   try {
     const entries = [];
-    for (let i = 0; i < story.audios.length; i++) {
-      const aPath = story.audios[i];
+    for (let i = 0; i < savedAudios.length; i++) {
+      const aPath = savedAudios[i];
       const fname = aPath.split("/").pop();
-      btn.textContent = `⏳ กำลังดึงเสียง ${i + 1}/${story.audios.length}...`;
+      btn.textContent = `⏳ กำลังดึงเสียง ${i + 1}/${totalCount}...`;
       const item = await fetchPrivateMediaBlob(aPath);
       entries.push({ name: fname, blob: item.blob, lastModified: Date.now() });
     }
+    pendingAudioItems.forEach(pItem => {
+      entries.push({ name: pItem.safeFileName, blob: pItem.file, lastModified: pItem.file.lastModified || Date.now() });
+    });
+
     btn.textContent = "📦 กำลังแพ็กไฟล์เสียง .ZIP...";
-    const zipLabel = [story.episode, story.title, "voice"].filter(Boolean).join("_");
+    const zipLabel = [editingStoryDraft.episode, editingStoryDraft.title, "voice"].filter(Boolean).join("_");
     await buildAndDownloadZip(entries, zipLabel);
   } catch (err) {
     alert("ดาวน์โหลดไฟล์เสียงไม่สำเร็จ: " + err.message);
@@ -3041,16 +3348,24 @@ async function downloadAllStoryAudios() {
   }
 }
 
-async function removeStoryAudio(idx) {
-  const story = appData.stories.find(s => s.id === activeStoryId);
-  if (!story || !story.audios) return;
-  const audioPath = story.audios[idx];
-  story.audios.splice(idx, 1);
-  renderStoryAudios(story);
-  await commitStoryEdits(true);
-  if (isGitHubConfigured() && audioPath) {
-    deleteFileFromGitHub(audioPath).catch(() => {});
+function removeSavedStoryAudio(idx) {
+  if (!editingStoryDraft || !editingStoryDraft.audios) return;
+  const audioPath = editingStoryDraft.audios[idx];
+  editingStoryDraft.audios.splice(idx, 1);
+  if (audioPath && !pendingDeletePaths.includes(audioPath)) {
+    pendingDeletePaths.push(audioPath);
   }
+  markStoryDirty();
+  renderStoryAudios();
+}
+
+function removePendingStoryAudio(tempId) {
+  const idx = pendingAudioItems.findIndex(p => p.tempId === tempId);
+  if (idx === -1) return;
+  const removed = pendingAudioItems.splice(idx, 1)[0];
+  if (removed && removed.url) URL.revokeObjectURL(removed.url);
+  markStoryDirty();
+  renderStoryAudios();
 }
 
 // ================= HELPERS =================
