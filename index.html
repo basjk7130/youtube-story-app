@@ -421,6 +421,8 @@
     padding: 8px;
   }
   .modal-backdrop.open { display: flex; }
+  #githubConfigModal { z-index: 160; }
+
   .modal-box {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -577,7 +579,7 @@
     justify-content: space-between;
   }
 
-  /* Media Folder Drag & Drop Zone */
+  /* Media Folder Drag & Drop Zone + Upload Progress Bar */
   .folder-section {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -597,6 +599,30 @@
     border-color: var(--success);
     background: rgba(16, 185, 129, 0.12);
   }
+  .upload-progress-box {
+    display: none;
+    margin-top: 12px;
+    background: #0f172a;
+    border: 1px solid #3b82f6;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .upload-progress-box.active { display: block; }
+  .progress-track {
+    width: 100%;
+    height: 10px;
+    background: #1e293b;
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 8px 0 4px 0;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #3b82f6, #10b981);
+    transition: width 0.2s ease;
+  }
+
   .gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
@@ -986,20 +1012,32 @@
         <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
           <strong style="font-size:15px;">☁️ โฟลเดอร์รูปภาพ & วีดีโอบน GitHub (<span id="storyImageCount">0 ไฟล์</span>)</strong>
           <div style="display:flex; flex-wrap:wrap; gap:8px;">
-            <button type="button" class="btn btn-sm" onclick="document.getElementById('folderPickerInput').click()">📂 เลือกทั้งโฟลเดอร์</button>
-            <button type="button" class="btn btn-sm" onclick="document.getElementById('filesPickerInput').click()">🖼️🎬 เลือกไฟล์รูป/วีดีโอ</button>
+            <button type="button" id="btnPickFolder" class="btn btn-sm" onclick="document.getElementById('folderPickerInput').click()">📂 เลือกทั้งโฟลเดอร์</button>
+            <button type="button" id="btnPickFiles" class="btn btn-sm" onclick="document.getElementById('filesPickerInput').click()">🖼️🎬 เลือกไฟล์รูป/วีดีโอ</button>
             <button type="button" id="storyZipBtn" class="btn btn-success btn-sm" onclick="downloadStoryMediaZip()">📦 โหลดออกมาทั้งโฟลเดอร์ (.ZIP)</button>
           </div>
         </div>
 
-        <input type="file" id="folderPickerInput" webkitdirectory directory multiple style="display:none" onchange="handleManualFileSelect(this.files)">
-        <input type="file" id="filesPickerInput" accept="image/*,video/*,.jfif,.mkv,.avi,.mov,.webm" multiple style="display:none" onchange="handleManualFileSelect(this.files)">
+        <input type="file" id="folderPickerInput" webkitdirectory directory multiple style="display:none" onchange="handleManualFileSelect(this)">
+        <input type="file" id="filesPickerInput" accept="image/*,video/*,.jfif,.mkv,.avi,.mov,.webm" multiple style="display:none" onchange="handleManualFileSelect(this)">
 
-        <div id="imageDropzone" class="dropzone">
+        <div id="imageDropzone" class="dropzone" onclick="document.getElementById('filesPickerInput').click()">
           <div style="font-size:15px; font-weight:700; margin-bottom:4px;">📥 ลาก "โฟลเดอร์รูปภาพ / วีดีโอ" หรือ "ไฟล์" มาวางในกรอบนี้ได้เลย</div>
           <div style="font-size:12px; color:var(--text-muted);">
             อัปโหลดขึ้น GitHub อัตโนมัติ • แปลง <b>.jfif → .jpg</b> • ตั้งชื่อ <b>1, 2, 3, 4... ตามวันที่ (เก่าสุดเป็น 1)</b> • ขนาดไม่เกิน 50 MB/ไฟล์
           </div>
+        </div>
+
+        <!-- Live Upload Progress Bar inside Modal -->
+        <div id="uploadProgressBox" class="upload-progress-box">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+            <strong id="uploadProgressText" style="color:#60a5fa;">⏳ กำลังเตรียมอัปโหลด...</strong>
+            <span id="uploadProgressPercent" style="color:#34d399; font-weight:700;">0%</span>
+          </div>
+          <div class="progress-track">
+            <div id="uploadProgressFill" class="progress-fill"></div>
+          </div>
+          <div id="uploadProgressSub" style="font-size:11px; color:var(--text-muted);">กรุณาอย่าปิดหน้าต่างนี้จนกว่าแถบสถานะจะครบ 100%</div>
         </div>
 
         <div id="storyGalleryGrid" class="gallery-grid"></div>
@@ -1101,7 +1139,12 @@ let activeStoryId = null;
 let autoSaveTimer = null;
 let activeSchedDay = null;
 let batchQueuedFiles = [];
+let isUploadingMedia = false;
 const mediaBlobCache = {};
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
 
 // ================= GITHUB API & MAGIC AUTO-LOGIN LINK =================
 function loadGitHubConfig() {
@@ -1300,28 +1343,39 @@ async function persistData() {
     });
   };
 
-  try {
-    let res = await putJson(currentJsonSha);
-    if (res.status === 409 || res.status === 422) {
-      const latest = await githubRequest(`stories_data.json?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
-      if (latest.ok) {
-        const latestJson = await latest.json();
-        currentJsonSha = latestJson.sha;
-        res = await putJson(currentJsonSha);
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      let res = await putJson(currentJsonSha);
+      if (res.status === 409 || res.status === 422) {
+        const latest = await githubRequest(`stories_data.json?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
+        if (latest.ok) {
+          const latestJson = await latest.json();
+          currentJsonSha = latestJson.sha;
+          res = await putJson(currentJsonSha);
+        }
+      }
+      if (res.status === 403 || res.status === 429) {
+        await sleep(2500 * attempt);
+        continue;
+      }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || `HTTP ${res.status}`);
+      }
+      const saved = await res.json();
+      currentJsonSha = saved.content && saved.content.sha ? saved.content.sha : currentJsonSha;
+      setSaveStatus("saved", "🟢 บันทึกขึ้น GitHub เรียบร้อย");
+      const hint = document.getElementById("modalAutoSaveHint");
+      if (hint) hint.textContent = "✓ บันทึกขึ้น GitHub แล้ว (" + new Date().toLocaleTimeString("th-TH") + ")";
+      return;
+    } catch (err) {
+      if (attempt === 3) {
+        setSaveStatus("offline", "⚠️ บันทึกขึ้น GitHub ขัดข้อง");
+        console.error(err);
+      } else {
+        await sleep(1500);
       }
     }
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.message || `HTTP ${res.status}`);
-    }
-    const saved = await res.json();
-    currentJsonSha = saved.content && saved.content.sha ? saved.content.sha : currentJsonSha;
-    setSaveStatus("saved", "🟢 บันทึกขึ้น GitHub เรียบร้อย");
-    const hint = document.getElementById("modalAutoSaveHint");
-    if (hint) hint.textContent = "✓ บันทึกขึ้น GitHub แล้ว (" + new Date().toLocaleTimeString("th-TH") + ")";
-  } catch (err) {
-    setSaveStatus("offline", "⚠️ บันทึกขึ้น GitHub ขัดข้อง");
-    console.error(err);
   }
 }
 
@@ -1926,6 +1980,7 @@ function openStoryModal(storyId) {
   document.getElementById("editTitle").value = story.title || "";
   document.getElementById("editStatus").value = story.status || "ร่างไอเดีย";
   document.getElementById("wordEditor").innerHTML = story.contentHtml || "";
+  document.getElementById("uploadProgressBox").classList.remove("active");
 
   updateWordCount();
   renderStoryGallery(story);
@@ -1934,6 +1989,11 @@ function openStoryModal(storyId) {
 }
 
 function closeStoryModal() {
+  if (isUploadingMedia) {
+    if (!confirm("ระบบกำลังอัปโหลดไฟล์ขึ้น GitHub อยู่ หากปิดตอนนี้ไฟล์ที่เหลืออาจยังอัปโหลดไม่เสร็จ ต้องการปิดใช่หรือไม่?")) {
+      return;
+    }
+  }
   if (autoSaveTimer) {
     clearTimeout(autoSaveTimer);
     commitStoryEdits(true);
@@ -2109,21 +2169,89 @@ function traverseFileTree(item, fileList) {
   });
 }
 
-async function handleManualFileSelect(fileListObj) {
-  const files = Array.from(fileListObj).filter(f => isMediaFile(f.name));
-  if (files.length > 0) await uploadMediaFilesToGitHub(files);
+async function handleManualFileSelect(inputEl) {
+  const files = Array.from(inputEl.files || []).filter(f => isMediaFile(f.name));
+  inputEl.value = "";
+  if (files.length > 0) {
+    await uploadMediaFilesToGitHub(files);
+  }
+}
+
+function updateModalUploadProgress(current, total, statusText, subText = "") {
+  const box = document.getElementById("uploadProgressBox");
+  const txt = document.getElementById("uploadProgressText");
+  const pct = document.getElementById("uploadProgressPercent");
+  const fill = document.getElementById("uploadProgressFill");
+  const sub = document.getElementById("uploadProgressSub");
+
+  box.classList.add("active");
+  const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+  txt.textContent = statusText;
+  pct.textContent = `${percent}%`;
+  fill.style.width = `${percent}%`;
+  if (subText) sub.textContent = subText;
+}
+
+async function uploadSingleFileWithRetry(repoPath, b64Content) {
+  const sendPut = async (shaVal = null) => {
+    const payload = {
+      message: `Upload ${repoPath}`,
+      content: b64Content,
+      branch: ghConfig.branch
+    };
+    if (shaVal) payload.sha = shaVal;
+    return githubRequest(repoPath, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  };
+
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    let res = await sendPut(null);
+
+    if (res.status === 422 || res.status === 409) {
+      const checkRes = await githubRequest(`${repoPath}?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
+      if (checkRes.ok) {
+        const existingFile = await checkRes.json();
+        if (existingFile && existingFile.sha) {
+          res = await sendPut(existingFile.sha);
+        }
+      }
+    }
+
+    if (res.ok) return true;
+
+    if (res.status === 403 || res.status === 429 || res.status >= 500) {
+      await sleep(2500 * attempt);
+      continue;
+    }
+
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `HTTP ${res.status}`);
+  }
+  throw new Error("GitHub API ตอบสนองช้าหรือติดลิมิตชั่วคราว กรุณาลองใหม่อีกครั้ง");
 }
 
 async function uploadMediaFilesToGitHub(files) {
+  if (isUploadingMedia) {
+    alert("กำลังอัปโหลดชุดก่อนหน้าอยู่ กรุณารอสักครู่ครับ");
+    return;
+  }
+
   const story = appData.stories.find(s => s.id === activeStoryId);
   if (!story) return;
   if (!story.images) story.images = [];
 
   if (!isGitHubConfigured()) {
-    alert("กรุณากดปุ่ม '☁️ เชื่อมต่อ GitHub' ด้านบนเพื่อใส่รหัส Token ก่อนอัปโหลดไฟล์ครับ");
+    alert("กรุณากรอกรหัส GitHub Token ในหน้าต่างเชื่อมต่อก่อนอัปโหลดไฟล์ครับ");
     openGitHubConfigModal();
     return;
   }
+
+  isUploadingMedia = true;
+  document.getElementById("btnPickFolder").disabled = true;
+  document.getElementById("btnPickFiles").disabled = true;
 
   files.sort((a, b) => {
     if (a.lastModified !== b.lastModified) return a.lastModified - b.lastModified;
@@ -2138,69 +2266,74 @@ async function uploadMediaFilesToGitHub(files) {
   }
 
   const skippedLarge = [];
+  const failedFiles = [];
+  let uploadedCount = 0;
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    if (file.size > MAX_GITHUB_FILE_BYTES) {
-      skippedLarge.push(`${file.name} (${formatBytes(file.size)})`);
-      continue;
-    }
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > MAX_GITHUB_FILE_BYTES) {
+        skippedLarge.push(`${file.name} (${formatBytes(file.size)})`);
+        continue;
+      }
 
-    maxSeq += 1;
-    const ext = getConvertedExtension(file.name);
-    const repoPath = `media/${story.id}/${maxSeq}${ext}`;
-    setSaveStatus("saving", `⏳ กำลังอัปโหลดไฟล์ ${i + 1}/${files.length} (${maxSeq}${ext}) ขึ้น GitHub...`);
+      const nextNum = maxSeq + 1;
+      const ext = getConvertedExtension(file.name);
+      const repoPath = `media/${story.id}/${nextNum}${ext}`;
 
-    try {
-      const b64 = await fileToBase64Raw(file);
+      updateModalUploadProgress(
+        i,
+        files.length,
+        `⏳ กำลังอัปโหลดไฟล์ ${i + 1} / ${files.length} : ${file.name} → ${nextNum}${ext}`,
+        `ขนาดไฟล์ ${formatBytes(file.size)} • ระบบบันทึกข้อมูลลง JSON ทุกๆ 5 ไฟล์อัตโนมัติ`
+      );
+      setSaveStatus("saving", `⏳ อัปโหลด ${i + 1}/${files.length} (${nextNum}${ext})...`);
 
-      const sendPut = async (shaVal = null) => {
-        const payload = {
-          message: `Upload ${repoPath}`,
-          content: b64,
-          branch: ghConfig.branch
-        };
-        if (shaVal) payload.sha = shaVal;
-        return githubRequest(repoPath, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-      };
+      try {
+        const b64 = await fileToBase64Raw(file);
+        await uploadSingleFileWithRetry(repoPath, b64);
 
-      let res = await sendPut(null);
-
-      // หากมีไฟล์ชื่อนี้ค้างอยู่บน GitHub แล้ว (HTTP 422) ให้ดึง sha เดิมมาเขียนทับอัตโนมัติ
-      if (res.status === 422) {
-        const checkRes = await githubRequest(`${repoPath}?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
-        if (checkRes.ok) {
-          const existingFile = await checkRes.json();
-          if (existingFile && existingFile.sha) {
-            res = await sendPut(existingFile.sha);
-          }
+        maxSeq = nextNum;
+        uploadedCount++;
+        mediaBlobCache[repoPath] = { blob: file, url: URL.createObjectURL(file) };
+        if (!story.images.includes(repoPath)) {
+          story.images.push(repoPath);
         }
-      }
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `HTTP ${res.status}`);
-      }
+        // บันทึกลง JSON และแสดงรูปทุกๆ 5 ไฟล์ เพื่อกันข้อมูลหายกลางคัน
+        if (uploadedCount % 5 === 0) {
+          renderStoryGallery(story);
+          await commitStoryEdits(true);
+        }
 
-      mediaBlobCache[repoPath] = { blob: file, url: URL.createObjectURL(file) };
-      if (!story.images.includes(repoPath)) {
-        story.images.push(repoPath);
+        // เว้นจังหวะสั้นๆ ป้องกัน GitHub Secondary Rate Limit
+        await sleep(350);
+      } catch (err) {
+        failedFiles.push(`${file.name}: ${err.message}`);
       }
-    } catch (err) {
-      alert(`อัปโหลดไฟล์ ${file.name} ไม่สำเร็จ: ${err.message}`);
     }
-  }
 
-  if (skippedLarge.length > 0) {
-    alert("ไฟล์ต่อไปนี้มีขนาดเกิน 50 MB (เกินลิมิต GitHub API) จึงไม่ถูกอัปโหลด:\n- " + skippedLarge.join("\n- "));
-  }
+    renderStoryGallery(story);
+    await commitStoryEdits(true);
 
-  renderStoryGallery(story);
-  await commitStoryEdits(true);
+    updateModalUploadProgress(
+      files.length,
+      files.length,
+      `✅ อัปโหลดเสร็จสมบูรณ์ ${uploadedCount} จาก ${files.length} ไฟล์!`,
+      "บันทึกขึ้น GitHub Private Repository เรียบร้อยแล้ว"
+    );
+
+    if (skippedLarge.length > 0) {
+      alert("ไฟล์ต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกอัปโหลด:\n- " + skippedLarge.join("\n- "));
+    }
+    if (failedFiles.length > 0) {
+      alert("มีบางไฟล์อัปโหลดไม่สำเร็จ:\n- " + failedFiles.join("\n- "));
+    }
+  } finally {
+    isUploadingMedia = false;
+    document.getElementById("btnPickFolder").disabled = false;
+    document.getElementById("btnPickFiles").disabled = false;
+  }
 }
 
 function renderStoryGallery(story) {
