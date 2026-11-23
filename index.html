@@ -350,7 +350,7 @@
   .story-excerpt {
     font-size: 13px;
     color: var(--text-muted);
-    max-width: 480px;
+    max-width: 460px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -363,16 +363,47 @@
     font-weight: 600;
     color: #fff;
   }
+
+  /* สีป้ายสถานะแยกชัดเจนมองเห็นได้ทันที */
   .status-badge {
-    padding: 3px 9px;
+    display: inline-block;
+    padding: 4px 10px;
     border-radius: 6px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    white-space: nowrap;
   }
-  .st-draft { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
-  .st-script { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
-  .st-media { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
-  .st-published { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+  .st-draft {
+    background: rgba(148, 163, 184, 0.18);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+  }
+  .st-script {
+    background: rgba(59, 130, 246, 0.22);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.5);
+  }
+  .st-image {
+    background: rgba(168, 85, 247, 0.22);
+    color: #d8b4fe;
+    border: 1px solid rgba(168, 85, 247, 0.5);
+  }
+  .st-audio {
+    background: rgba(249, 115, 22, 0.22);
+    color: #fdba74;
+    border: 1px solid rgba(249, 115, 22, 0.5);
+  }
+  .st-media {
+    background: rgba(234, 179, 8, 0.22);
+    color: #fde047;
+    border: 1px solid rgba(234, 179, 8, 0.55);
+  }
+  .st-published {
+    background: #10b981;
+    color: #ffffff;
+    border: 1px solid #059669;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  }
 
   /* Pagination */
   .pagination-bar {
@@ -483,7 +514,7 @@
 
   .meta-grid {
     display: grid;
-    grid-template-columns: 220px 120px 1fr 180px;
+    grid-template-columns: 220px 120px 1fr 200px;
     gap: 10px;
     margin-bottom: 12px;
   }
@@ -579,17 +610,18 @@
     justify-content: space-between;
   }
 
-  /* Media Folder Drag & Drop Zone + Upload Progress Bar */
+  /* Media & Audio Folder Drag & Drop Zone */
   .folder-section {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 14px;
+    margin-bottom: 16px;
   }
   .dropzone {
     border: 2px dashed #475569;
     border-radius: 10px;
-    padding: 20px;
+    padding: 18px;
     text-align: center;
     cursor: pointer;
     transition: 0.15s;
@@ -686,6 +718,41 @@
     text-overflow: ellipsis;
   }
 
+  /* Audio List Rows */
+  .audio-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .audio-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .audio-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 180px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .audio-player-slot {
+    flex: 1;
+    min-width: 220px;
+  }
+  .audio-player-slot audio {
+    width: 100%;
+    height: 34px;
+  }
+
   /* Lightbox */
   .lightbox {
     position: fixed;
@@ -770,6 +837,8 @@
         <option value="ALL">📌 ทุกสถานะงาน</option>
         <option value="ร่างไอเดีย">📝 ร่างไอเดีย</option>
         <option value="เขียนบทเสร็จ">✍️ เขียนบทเสร็จ</option>
+        <option value="ทำภาพแล้ว">🖼️ ทำภาพแล้ว</option>
+        <option value="ทำเสียงแล้ว">🎙️ ทำเสียงแล้ว</option>
         <option value="ทำภาพ/เสียงแล้ว">🎬 ทำภาพ/เสียงแล้ว</option>
         <option value="ลงยูทูปแล้ว">✅ ลงยูทูปแล้ว</option>
       </select>
@@ -782,10 +851,10 @@
           <tr>
             <th style="width:75px;">ตอน / EP</th>
             <th>ชื่อเรื่อง & ตัวอย่างเนื้อเรื่อง</th>
-            <th style="width:190px;">ช่อง YouTube</th>
-            <th style="width:140px;">สถานะ</th>
-            <th style="width:135px;">ไฟล์สื่อ</th>
-            <th style="width:130px;">อัปเดตล่าสุด</th>
+            <th style="width:185px;">ช่อง YouTube</th>
+            <th style="width:155px;">สถานะ</th>
+            <th style="width:160px;">ไฟล์ภาพ / เสียง</th>
+            <th style="width:125px;">อัปเดตล่าสุด</th>
             <th style="width:145px; text-align:right;">จัดการ</th>
           </tr>
         </thead>
@@ -809,7 +878,7 @@
     </div>
     <div class="modal-body">
       <p style="font-size:13px; color:var(--text-muted); margin-top:0;">
-        กรอกข้อมูล Repository ส่วนตัว (Private) ที่ใช้เก็บฐานข้อมูลและไฟล์รูป/วีดีโอ เมื่อบันทึกแล้วสามารถกดปุ่ม <b>🔗 คัดลอกลิงก์เข้าทันที</b> เพื่อนำไปเปิดในเบราว์เซอร์อื่นได้โดยไม่ต้องกรอกซ้ำ
+        กรอกข้อมูล Repository ส่วนตัว (Private) ที่ใช้เก็บฐานข้อมูลและไฟล์รูป/เสียง/วีดีโอ เมื่อบันทึกแล้วสามารถกดปุ่ม <b>🔗 คัดลอกลิงก์เข้าทันที</b> เพื่อนำไปเปิดในเบราว์เซอร์อื่นได้โดยไม่ต้องกรอกซ้ำ
       </p>
       <div style="margin-bottom:12px;">
         <label class="field-label">1. ชื่อผู้ใช้ GitHub (Username)</label>
@@ -942,9 +1011,11 @@
         </div>
         <div>
           <label class="field-label">สถานะการผลิต</label>
-          <select id="editStatus" class="select" style="width:100%;" onchange="triggerStoryAutoSave()">
+          <select id="editStatus" class="select" style="width:100%; font-weight:700;" onchange="triggerStoryAutoSave()">
             <option value="ร่างไอเดีย">📝 ร่างไอเดีย</option>
             <option value="เขียนบทเสร็จ">✍️ เขียนบทเสร็จ</option>
+            <option value="ทำภาพแล้ว">🖼️ ทำภาพแล้ว</option>
+            <option value="ทำเสียงแล้ว">🎙️ ทำเสียงแล้ว</option>
             <option value="ทำภาพ/เสียงแล้ว">🎬 ทำภาพ/เสียงแล้ว</option>
             <option value="ลงยูทูปแล้ว">✅ ลงยูทูปแล้ว</option>
           </select>
@@ -1007,10 +1078,10 @@
         </div>
       </div>
 
-      <!-- Cloud Media Folder Drag & Drop -->
+      <!-- 1. Cloud Image & Video Folder Drag & Drop -->
       <div class="folder-section">
         <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
-          <strong style="font-size:15px;">☁️ โฟลเดอร์รูปภาพ & วีดีโอบน GitHub (<span id="storyImageCount">0 ไฟล์</span>)</strong>
+          <strong style="font-size:15px;">🖼️ โฟลเดอร์รูปภาพ & วีดีโอบน GitHub (<span id="storyImageCount">0 ไฟล์</span>)</strong>
           <div style="display:flex; flex-wrap:wrap; gap:8px;">
             <button type="button" id="btnPickFolder" class="btn btn-sm" onclick="document.getElementById('folderPickerInput').click()">📂 เลือกทั้งโฟลเดอร์</button>
             <button type="button" id="btnPickFiles" class="btn btn-sm" onclick="document.getElementById('filesPickerInput').click()">🖼️🎬 เลือกไฟล์รูป/วีดีโอ</button>
@@ -1024,11 +1095,11 @@
         <div id="imageDropzone" class="dropzone" onclick="document.getElementById('filesPickerInput').click()">
           <div style="font-size:15px; font-weight:700; margin-bottom:4px;">📥 ลาก "โฟลเดอร์รูปภาพ / วีดีโอ" หรือ "ไฟล์" มาวางในกรอบนี้ได้เลย</div>
           <div style="font-size:12px; color:var(--text-muted);">
-            อัปโหลดขึ้น GitHub อัตโนมัติ • แปลง <b>.jfif → .jpg</b> • ตั้งชื่อ <b>1, 2, 3, 4... ตามวันที่ (เก่าสุดเป็น 1)</b> • ขนาดไม่เกิน 50 MB/ไฟล์
+            อัปโหลดเสร็จเปลี่ยนสถานะเป็น <b>🖼️ ทำภาพแล้ว</b> อัตโนมัติ • แปลง <b>.jfif → .jpg</b> • ตั้งชื่อ <b>1, 2, 3... ตามวันที่ (เก่าสุดเป็น 1)</b>
           </div>
         </div>
 
-        <!-- Live Upload Progress Bar inside Modal -->
+        <!-- Live Image Upload Progress Bar (Auto-hides at 100%) -->
         <div id="uploadProgressBox" class="upload-progress-box">
           <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
             <strong id="uploadProgressText" style="color:#60a5fa;">⏳ กำลังเตรียมอัปโหลด...</strong>
@@ -1037,10 +1108,44 @@
           <div class="progress-track">
             <div id="uploadProgressFill" class="progress-fill"></div>
           </div>
-          <div id="uploadProgressSub" style="font-size:11px; color:var(--text-muted);">กรุณาอย่าปิดหน้าต่างนี้จนกว่าแถบสถานะจะครบ 100%</div>
+          <div id="uploadProgressSub" style="font-size:11px; color:var(--text-muted);">กรุณารอจนครบ 100% แถบสถานะจะปิดเองอัตโนมัติ</div>
         </div>
 
         <div id="storyGalleryGrid" class="gallery-grid"></div>
+      </div>
+
+      <!-- 2. Cloud Voice / Audio Section -->
+      <div class="folder-section">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;">
+          <strong style="font-size:15px;">🎙️ ไฟล์เสียงพากย์ที่ทำเสร็จแล้ว (<span id="storyAudioCount">0 ไฟล์</span>)</strong>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <button type="button" id="btnPickAudio" class="btn btn-primary btn-sm" onclick="document.getElementById('audioPickerInput').click()">🎵 เลือกไฟล์เสียง (.mp3 / .wav)</button>
+            <button type="button" id="storyAudioDownloadAllBtn" class="btn btn-success btn-sm" onclick="downloadAllStoryAudios()">⬇️ โหลดไฟล์เสียงทั้งหมด</button>
+          </div>
+        </div>
+
+        <input type="file" id="audioPickerInput" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.wma" multiple style="display:none" onchange="handleManualAudioSelect(this)">
+
+        <div id="audioDropzone" class="dropzone" onclick="document.getElementById('audioPickerInput').click()">
+          <div style="font-size:15px; font-weight:700; margin-bottom:4px;">🎧 ลาก "ไฟล์เสียงพากย์" (.mp3, .wav, .m4a) มาวางในกรอบนี้ได้เลย</div>
+          <div style="font-size:12px; color:var(--text-muted);">
+            อัปโหลดเสร็จเปลี่ยนสถานะเป็น <b>🎙️ ทำเสียงแล้ว</b> (หรือ <b>🎬 ทำภาพ/เสียงแล้ว</b> หากมีรูปภาพอยู่แล้ว) อัตโนมัติ
+          </div>
+        </div>
+
+        <!-- Live Audio Upload Progress Bar (Auto-hides at 100%) -->
+        <div id="audioProgressBox" class="upload-progress-box">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+            <strong id="audioProgressText" style="color:#fb923c;">⏳ กำลังอัปโหลดไฟล์เสียง...</strong>
+            <span id="audioProgressPercent" style="color:#34d399; font-weight:700;">0%</span>
+          </div>
+          <div class="progress-track">
+            <div id="audioProgressFill" class="progress-fill"></div>
+          </div>
+          <div id="audioProgressSub" style="font-size:11px; color:var(--text-muted);">กรุณารอจนครบ 100% แถบสถานะจะปิดเองอัตโนมัติ</div>
+        </div>
+
+        <div id="storyAudioList" class="audio-list"></div>
       </div>
     </div>
 
@@ -1140,6 +1245,9 @@ let autoSaveTimer = null;
 let activeSchedDay = null;
 let batchQueuedFiles = [];
 let isUploadingMedia = false;
+let isUploadingAudio = false;
+let mediaHideTimer = null;
+let audioHideTimer = null;
 const mediaBlobCache = {};
 
 function sleep(ms) {
@@ -1310,7 +1418,10 @@ async function syncFromGitHub(showAlertOnSuccess = false) {
     renderAll();
     if (activeStoryId) {
       const st = appData.stories.find(s => s.id === activeStoryId);
-      if (st) renderStoryGallery(st);
+      if (st) {
+        renderStoryGallery(st);
+        renderStoryAudios(st);
+      }
     }
     if (showAlertOnSuccess) alert("ดึงข้อมูลล่าสุดจาก GitHub เรียบร้อยแล้ว!");
   } catch (err) {
@@ -1396,6 +1507,7 @@ async function initApp() {
   loadGitHubConfig();
   updateMagicLinkButtonVisibility();
   setupDropzone();
+  setupAudioDropzone();
   setupBatchDropzone();
 
   if (isGitHubConfigured()) {
@@ -1455,7 +1567,7 @@ function setupBatchDropzone() {
         }
       }
       for (const entry of entries) {
-        await traverseFileTree(entry, collectedFiles);
+        await traverseFileTree(entry, collectedFiles, isMediaFile);
       }
     } else if (e.dataTransfer.files) {
       for (const f of e.dataTransfer.files) {
@@ -1851,6 +1963,42 @@ function deleteChannel(idx) {
   persistData();
 }
 
+// ================= STATUS HELPER & AUTO STATUS LOGIC =================
+function getStatusBadgeClass(status) {
+  switch (status) {
+    case "ลงยูทูปแล้ว": return "st-published";
+    case "ทำภาพ/เสียงแล้ว": return "st-media";
+    case "ทำภาพแล้ว": return "st-image";
+    case "ทำเสียงแล้ว": return "st-audio";
+    case "เขียนบทเสร็จ": return "st-script";
+    default: return "st-draft";
+  }
+}
+
+function applyAutoProductionStatus(story) {
+  if (!story) return;
+  // หากผู้ใช้กดเปลี่ยนเป็น "ลงยูทูปแล้ว" เองแล้ว จะไม่เขียนทับอัตโนมัติ
+  if (story.status === "ลงยูทูปแล้ว") return;
+
+  const hasMedia = (story.images || []).length > 0;
+  const hasAudio = (story.audios || []).length > 0;
+
+  let nextStatus = story.status;
+  if (hasMedia && hasAudio) {
+    nextStatus = "ทำภาพ/เสียงแล้ว";
+  } else if (hasMedia) {
+    nextStatus = "ทำภาพแล้ว";
+  } else if (hasAudio) {
+    nextStatus = "ทำเสียงแล้ว";
+  }
+
+  story.status = nextStatus;
+  const statusSelect = document.getElementById("editStatus");
+  if (statusSelect && activeStoryId === story.id) {
+    statusSelect.value = nextStatus;
+  }
+}
+
 // ================= STORIES LIST & PAGINATION =================
 function resetPageAndRender() {
   currentPage = 1;
@@ -1891,14 +2039,18 @@ function renderStoriesTable() {
       const chName = ch ? ch.name : "ไม่ระบุช่อง";
       const chColor = ch ? ch.color : "#64748b";
       const plainText = stripHtml(story.contentHtml || "").trim() || "(ยังไม่มีเนื้อเรื่อง)";
+
       const mediaList = story.images || [];
+      const audioList = story.audios || [];
       const vidCount = mediaList.filter(p => isVideoFile(p)).length;
       const imgCount = mediaList.length - vidCount;
-      const mediaLabel = vidCount > 0 ? `🖼️ ${imgCount} • 🎬 ${vidCount}` : `🖼️ ${imgCount} รูป`;
 
-      const stClass = story.status === "ลงยูทูปแล้ว" ? "st-published"
-                    : story.status === "ทำภาพ/เสียงแล้ว" ? "st-media"
-                    : story.status === "เขียนบทเสร็จ" ? "st-script" : "st-draft";
+      const mediaParts = [`🖼️ ${imgCount}`];
+      if (vidCount > 0) mediaParts.push(`🎬 ${vidCount}`);
+      mediaParts.push(`🎙️ ${audioList.length}`);
+      const mediaLabel = mediaParts.join(" • ");
+
+      const stClass = getStatusBadgeClass(story.status);
 
       return `
         <tr class="story-row" onclick="openStoryModal('${story.id}')">
@@ -1909,7 +2061,7 @@ function renderStoriesTable() {
           </td>
           <td><span class="badge" style="background:${chColor}">${escapeHtml(chName)}</span></td>
           <td><span class="status-badge ${stClass}">${escapeHtml(story.status || "ร่างไอเดีย")}</span></td>
-          <td>${mediaLabel}</td>
+          <td style="font-size:13px;">${mediaLabel}</td>
           <td style="font-size:12px; color:var(--text-muted);">${escapeHtml(story.updatedAt || "-")}</td>
           <td style="text-align:right;" onclick="event.stopPropagation()">
             <button class="btn btn-sm" onclick="openStoryModal('${story.id}')">✏️ เปิด/แก้ไข</button>
@@ -1950,6 +2102,7 @@ function openStoryModal(storyId) {
   chSelect.innerHTML = appData.channels.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
 
   let story;
+  const isNewStory = !storyId;
   if (storyId) {
     story = appData.stories.find(s => s.id === storyId);
     document.getElementById("modalHeaderTitle").textContent = "📖 อ่านและแก้ไขรายละเอียดเรื่องเล่า";
@@ -1966,13 +2119,18 @@ function openStoryModal(storyId) {
       status: "ร่างไอเดีย",
       contentHtml: "",
       images: [],
+      audios: [],
       updatedAt: formatThaiNow()
     };
     appData.stories.unshift(story);
+    currentPage = 1;
     document.getElementById("modalHeaderTitle").textContent = "✨ เพิ่มเรื่องเล่าใหม่";
     persistData();
     renderAll();
   }
+
+  if (!story.images) story.images = [];
+  if (!story.audios) story.audios = [];
 
   activeStoryId = story.id;
   document.getElementById("editChannelId").value = story.channelId;
@@ -1980,16 +2138,32 @@ function openStoryModal(storyId) {
   document.getElementById("editTitle").value = story.title || "";
   document.getElementById("editStatus").value = story.status || "ร่างไอเดีย";
   document.getElementById("wordEditor").innerHTML = story.contentHtml || "";
+
   document.getElementById("uploadProgressBox").classList.remove("active");
+  document.getElementById("audioProgressBox").classList.remove("active");
 
   updateWordCount();
   renderStoryGallery(story);
-  document.getElementById("storyModalBody").scrollTop = 0;
-  document.getElementById("storyModal").classList.add("open");
+  renderStoryAudios(story);
+
+  // เปิดหน้าต่างและเลื่อนสกอล์ขึ้นบนสุดทันที
+  const modal = document.getElementById("storyModal");
+  const modalBody = document.getElementById("storyModalBody");
+  modal.classList.add("open");
+  modalBody.scrollTop = 0;
+
+  requestAnimationFrame(() => {
+    modalBody.scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (isNewStory) {
+      const titleInput = document.getElementById("editTitle");
+      if (titleInput) titleInput.focus();
+    }
+  });
 }
 
 function closeStoryModal() {
-  if (isUploadingMedia) {
+  if (isUploadingMedia || isUploadingAudio) {
     if (!confirm("ระบบกำลังอัปโหลดไฟล์ขึ้น GitHub อยู่ หากปิดตอนนี้ไฟล์ที่เหลืออาจยังอัปโหลดไม่เสร็จ ต้องการปิดใช่หรือไม่?")) {
       return;
     }
@@ -2004,11 +2178,11 @@ function closeStoryModal() {
 }
 
 function triggerStoryAutoSave() {
-  document.getElementById("modalAutoSaveHint").textContent = "⏳ กำลังพิมพ์...";
+  document.getElementById("modalAutoSaveHint").textContent = "⏳ กำลังบันทึก...";
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => {
     commitStoryEdits(true);
-  }, 1200);
+  }, 1000);
 }
 
 function commitStoryEdits(saveToCloud = true) {
@@ -2042,16 +2216,16 @@ function deleteCurrentStoryFromModal() {
 async function deleteStoryById(storyId) {
   const story = appData.stories.find(s => s.id === storyId);
   if (!story) return;
-  if (!confirm(`ต้องการลบเรื่อง "${story.title || story.episode}" และไฟล์สื่อของเรื่องนี้บน GitHub ใช่หรือไม่?`)) return;
+  if (!confirm(`ต้องการลบเรื่อง "${story.title || story.episode}" และไฟล์ภาพ/เสียงทั้งหมดของเรื่องนี้บน GitHub ใช่หรือไม่?`)) return;
 
-  const mediaToDelete = [...(story.images || [])];
+  const filesToDelete = [...(story.images || []), ...(story.audios || [])];
   appData.stories = appData.stories.filter(s => s.id !== storyId);
   renderAll();
   await persistData();
 
   if (isGitHubConfigured()) {
-    for (const mPath of mediaToDelete) {
-      deleteFileFromGitHub(mPath).catch(() => {});
+    for (const fPath of filesToDelete) {
+      deleteFileFromGitHub(fPath).catch(() => {});
     }
   }
 }
@@ -2093,7 +2267,7 @@ function copyStoryPlainText() {
   navigator.clipboard.writeText(text).then(() => alert("คัดลอกเนื้อเรื่องทั้งหมดเรียบร้อยแล้ว!"));
 }
 
-// ================= GITHUB MEDIA UPLOAD & DOWNLOAD (.ZIP) =================
+// ================= FILE TYPE CHECKERS =================
 function isImageFile(filename) {
   return /\.(jpg|jpeg|jfif|png|webp|gif|bmp)$/i.test(filename);
 }
@@ -2106,6 +2280,36 @@ function isMediaFile(filename) {
   return isImageFile(filename) || isVideoFile(filename);
 }
 
+function isAudioFile(filename) {
+  return /\.(mp3|wav|m4a|aac|ogg|flac|wma)$/i.test(filename);
+}
+
+function traverseFileTree(item, fileList, filterFn) {
+  return new Promise(resolve => {
+    if (item.isFile) {
+      item.file(file => {
+        if (filterFn(file.name)) fileList.push(file);
+        resolve();
+      }, () => resolve());
+    } else if (item.isDirectory) {
+      const dirReader = item.createReader();
+      const readBatch = () => {
+        dirReader.readEntries(async entries => {
+          if (!entries.length) resolve();
+          else {
+            for (const ent of entries) await traverseFileTree(ent, fileList, filterFn);
+            readBatch();
+          }
+        }, () => resolve());
+      };
+      readBatch();
+    } else {
+      resolve();
+    }
+  });
+}
+
+// ================= IMAGE & VIDEO UPLOAD =================
 function setupDropzone() {
   const dz = document.getElementById("imageDropzone");
   dz.addEventListener("dragover", e => {
@@ -2128,7 +2332,7 @@ function setupDropzone() {
         if (entry) entries.push(entry);
       }
       for (const entry of entries) {
-        await traverseFileTree(entry, collectedFiles);
+        await traverseFileTree(entry, collectedFiles, isMediaFile);
       }
     } else if (e.dataTransfer.files) {
       for (const f of e.dataTransfer.files) {
@@ -2144,31 +2348,6 @@ function setupDropzone() {
   });
 }
 
-function traverseFileTree(item, fileList) {
-  return new Promise(resolve => {
-    if (item.isFile) {
-      item.file(file => {
-        if (isMediaFile(file.name)) fileList.push(file);
-        resolve();
-      }, () => resolve());
-    } else if (item.isDirectory) {
-      const dirReader = item.createReader();
-      const readBatch = () => {
-        dirReader.readEntries(async entries => {
-          if (!entries.length) resolve();
-          else {
-            for (const ent of entries) await traverseFileTree(ent, fileList);
-            readBatch();
-          }
-        }, () => resolve());
-      };
-      readBatch();
-    } else {
-      resolve();
-    }
-  });
-}
-
 async function handleManualFileSelect(inputEl) {
   const files = Array.from(inputEl.files || []).filter(f => isMediaFile(f.name));
   inputEl.value = "";
@@ -2178,6 +2357,10 @@ async function handleManualFileSelect(inputEl) {
 }
 
 function updateModalUploadProgress(current, total, statusText, subText = "") {
+  if (mediaHideTimer) {
+    clearTimeout(mediaHideTimer);
+    mediaHideTimer = null;
+  }
   const box = document.getElementById("uploadProgressBox");
   const txt = document.getElementById("uploadProgressText");
   const pct = document.getElementById("uploadProgressPercent");
@@ -2190,6 +2373,14 @@ function updateModalUploadProgress(current, total, statusText, subText = "") {
   pct.textContent = `${percent}%`;
   fill.style.width = `${percent}%`;
   if (subText) sub.textContent = subText;
+
+  // เมื่อครบ 100% ให้ซ่อนแถบสถานะอัตโนมัติ
+  if (total > 0 && current >= total) {
+    mediaHideTimer = setTimeout(() => {
+      box.classList.remove("active");
+      fill.style.width = "0%";
+    }, 1500);
+  }
 }
 
 async function uploadSingleFileWithRetry(repoPath, b64Content) {
@@ -2284,10 +2475,10 @@ async function uploadMediaFilesToGitHub(files) {
       updateModalUploadProgress(
         i,
         files.length,
-        `⏳ กำลังอัปโหลดไฟล์ ${i + 1} / ${files.length} : ${file.name} → ${nextNum}${ext}`,
-        `ขนาดไฟล์ ${formatBytes(file.size)} • ระบบบันทึกข้อมูลลง JSON ทุกๆ 5 ไฟล์อัตโนมัติ`
+        `⏳ กำลังอัปโหลดภาพ ${i + 1} / ${files.length} : ${file.name} → ${nextNum}${ext}`,
+        `ขนาดไฟล์ ${formatBytes(file.size)}`
       );
-      setSaveStatus("saving", `⏳ อัปโหลด ${i + 1}/${files.length} (${nextNum}${ext})...`);
+      setSaveStatus("saving", `⏳ อัปโหลดภาพ ${i + 1}/${files.length} (${nextNum}${ext})...`);
 
       try {
         const b64 = await fileToBase64Raw(file);
@@ -2300,27 +2491,29 @@ async function uploadMediaFilesToGitHub(files) {
           story.images.push(repoPath);
         }
 
-        // บันทึกลง JSON และแสดงรูปทุกๆ 5 ไฟล์ เพื่อกันข้อมูลหายกลางคัน
         if (uploadedCount % 5 === 0) {
+          applyAutoProductionStatus(story);
           renderStoryGallery(story);
           await commitStoryEdits(true);
         }
 
-        // เว้นจังหวะสั้นๆ ป้องกัน GitHub Secondary Rate Limit
         await sleep(350);
       } catch (err) {
         failedFiles.push(`${file.name}: ${err.message}`);
       }
     }
 
+    if (uploadedCount > 0) {
+      applyAutoProductionStatus(story);
+    }
     renderStoryGallery(story);
     await commitStoryEdits(true);
 
     updateModalUploadProgress(
       files.length,
       files.length,
-      `✅ อัปโหลดเสร็จสมบูรณ์ ${uploadedCount} จาก ${files.length} ไฟล์!`,
-      "บันทึกขึ้น GitHub Private Repository เรียบร้อยแล้ว"
+      `✅ อัปโหลดภาพเสร็จสมบูรณ์ ${uploadedCount} จาก ${files.length} ไฟล์!`,
+      "กำลังซ่อนแถบสถานะ..."
     );
 
     if (skippedLarge.length > 0) {
@@ -2463,6 +2656,279 @@ async function downloadStoryMediaZip() {
   } finally {
     btn.disabled = false;
     btn.textContent = "📦 โหลดออกมาทั้งโฟลเดอร์ (.ZIP)";
+  }
+}
+
+// ================= VOICE / AUDIO UPLOAD & DOWNLOAD =================
+function setupAudioDropzone() {
+  const dz = document.getElementById("audioDropzone");
+  dz.addEventListener("dragover", e => {
+    e.preventDefault();
+    dz.classList.add("dragover");
+  });
+  dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
+  dz.addEventListener("drop", async e => {
+    e.preventDefault();
+    dz.classList.remove("dragover");
+    if (!activeStoryId) return;
+
+    const items = e.dataTransfer.items;
+    const collectedFiles = [];
+
+    if (items && items.length > 0 && items[0].webkitGetAsEntry) {
+      const entries = [];
+      for (let i = 0; i < items.length; i++) {
+        const entry = items[i].webkitGetAsEntry();
+        if (entry) entries.push(entry);
+      }
+      for (const entry of entries) {
+        await traverseFileTree(entry, collectedFiles, isAudioFile);
+      }
+    } else if (e.dataTransfer.files) {
+      for (const f of e.dataTransfer.files) {
+        if (isAudioFile(f.name)) collectedFiles.push(f);
+      }
+    }
+
+    if (collectedFiles.length > 0) {
+      await uploadAudioFilesToGitHub(collectedFiles);
+    } else {
+      alert("ไม่พบไฟล์เสียงที่รองรับ (.mp3, .wav, .m4a, .aac, .ogg) ในไฟล์ที่ลากมาวาง");
+    }
+  });
+}
+
+async function handleManualAudioSelect(inputEl) {
+  const files = Array.from(inputEl.files || []).filter(f => isAudioFile(f.name));
+  inputEl.value = "";
+  if (files.length > 0) {
+    await uploadAudioFilesToGitHub(files);
+  }
+}
+
+function updateModalAudioProgress(current, total, statusText, subText = "") {
+  if (audioHideTimer) {
+    clearTimeout(audioHideTimer);
+    audioHideTimer = null;
+  }
+  const box = document.getElementById("audioProgressBox");
+  const txt = document.getElementById("audioProgressText");
+  const pct = document.getElementById("audioProgressPercent");
+  const fill = document.getElementById("audioProgressFill");
+  const sub = document.getElementById("audioProgressSub");
+
+  box.classList.add("active");
+  const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+  txt.textContent = statusText;
+  pct.textContent = `${percent}%`;
+  fill.style.width = `${percent}%`;
+  if (subText) sub.textContent = subText;
+
+  // เมื่อครบ 100% ให้ซ่อนแถบสถานะอัตโนมัติ
+  if (total > 0 && current >= total) {
+    audioHideTimer = setTimeout(() => {
+      box.classList.remove("active");
+      fill.style.width = "0%";
+    }, 1500);
+  }
+}
+
+async function uploadAudioFilesToGitHub(files) {
+  if (isUploadingAudio) {
+    alert("กำลังอัปโหลดไฟล์เสียงชุดก่อนหน้าอยู่ กรุณารอสักครู่ครับ");
+    return;
+  }
+
+  const story = appData.stories.find(s => s.id === activeStoryId);
+  if (!story) return;
+  if (!story.audios) story.audios = [];
+
+  if (!isGitHubConfigured()) {
+    alert("กรุณากรอกรหัส GitHub Token ในหน้าต่างเชื่อมต่อก่อนอัปโหลดไฟล์เสียงครับ");
+    openGitHubConfigModal();
+    return;
+  }
+
+  isUploadingAudio = true;
+  document.getElementById("btnPickAudio").disabled = true;
+
+  files.sort((a, b) => {
+    if (a.lastModified !== b.lastModified) return a.lastModified - b.lastModified;
+    return a.name.localeCompare(b.name, undefined, { numeric: true });
+  });
+
+  const skippedLarge = [];
+  const failedFiles = [];
+  let uploadedCount = 0;
+
+  try {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > MAX_GITHUB_FILE_BYTES) {
+        skippedLarge.push(`${file.name} (${formatBytes(file.size)})`);
+        continue;
+      }
+
+      const safeFileName = file.name.replace(/[\\/*?:"<>|#%]/g, "_").trim() || `voice_${Date.now()}.mp3`;
+      const repoPath = `audio/${story.id}/${safeFileName}`;
+
+      updateModalAudioProgress(
+        i,
+        files.length,
+        `⏳ กำลังอัปโหลดไฟล์เสียง ${i + 1} / ${files.length} : ${safeFileName}`,
+        `ขนาดไฟล์ ${formatBytes(file.size)}`
+      );
+      setSaveStatus("saving", `⏳ อัปโหลดเสียง ${i + 1}/${files.length}...`);
+
+      try {
+        const b64 = await fileToBase64Raw(file);
+        await uploadSingleFileWithRetry(repoPath, b64);
+
+        uploadedCount++;
+        mediaBlobCache[repoPath] = { blob: file, url: URL.createObjectURL(file) };
+        if (!story.audios.includes(repoPath)) {
+          story.audios.push(repoPath);
+        }
+
+        await sleep(300);
+      } catch (err) {
+        failedFiles.push(`${file.name}: ${err.message}`);
+      }
+    }
+
+    if (uploadedCount > 0) {
+      applyAutoProductionStatus(story);
+    }
+    renderStoryAudios(story);
+    await commitStoryEdits(true);
+
+    updateModalAudioProgress(
+      files.length,
+      files.length,
+      `✅ อัปโหลดไฟล์เสียงเสร็จสมบูรณ์ ${uploadedCount} จาก ${files.length} ไฟล์!`,
+      "กำลังซ่อนแถบสถานะ..."
+    );
+
+    if (skippedLarge.length > 0) {
+      alert("ไฟล์เสียงต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกอัปโหลด:\n- " + skippedLarge.join("\n- "));
+    }
+    if (failedFiles.length > 0) {
+      alert("มีบางไฟล์เสียงอัปโหลดไม่สำเร็จ:\n- " + failedFiles.join("\n- "));
+    }
+  } finally {
+    isUploadingAudio = false;
+    document.getElementById("btnPickAudio").disabled = false;
+  }
+}
+
+function renderStoryAudios(story) {
+  const audios = story.audios || [];
+  document.getElementById("storyAudioCount").textContent = `${audios.length} ไฟล์`;
+
+  const listEl = document.getElementById("storyAudioList");
+  if (audios.length === 0) {
+    listEl.innerHTML = "";
+    return;
+  }
+
+  listEl.innerHTML = audios.map((audioPath, idx) => {
+    const fileName = audioPath.split("/").pop();
+    const cached = mediaBlobCache[audioPath];
+
+    const playerHtml = cached
+      ? `<audio controls src="${cached.url}"></audio>`
+      : `<div id="audio_slot_${idx}" style="font-size:12px; color:var(--text-muted);">⏳ กำลังโหลดเครื่องเล่นเสียง...</div>`;
+
+    return `
+      <div class="audio-row">
+        <div class="audio-info">
+          <span>🎵</span>
+          <span title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span>
+        </div>
+        <div class="audio-player-slot">
+          ${playerHtml}
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="btn btn-success btn-sm" onclick="downloadSingleAudio('${audioPath}')">⬇️ โหลดเสียง</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="removeStoryAudio(${idx})">ลบ</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  audios.forEach((audioPath, idx) => {
+    if (mediaBlobCache[audioPath]) return;
+    fetchPrivateMediaBlob(audioPath).then(item => {
+      const slot = document.getElementById(`audio_slot_${idx}`);
+      if (!slot) return;
+      slot.outerHTML = `<audio controls src="${item.url}"></audio>`;
+    }).catch(() => {
+      const slot = document.getElementById(`audio_slot_${idx}`);
+      if (slot) slot.textContent = "⚠️ กดปุ่มโหลดเสียงเพื่อดาวน์โหลดไฟล์";
+    });
+  });
+}
+
+async function downloadSingleAudio(audioPath) {
+  try {
+    setSaveStatus("saving", "⏳ กำลังดาวน์โหลดไฟล์เสียง...");
+    const item = await fetchPrivateMediaBlob(audioPath);
+    setSaveStatus("saved", "🟢 ซิงก์ GitHub แล้ว");
+    const fileName = audioPath.split("/").pop() || "voice.mp3";
+    const a = document.createElement("a");
+    a.href = item.url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (err) {
+    alert("ดาวน์โหลดไฟล์เสียงไม่สำเร็จ: " + err.message);
+  }
+}
+
+async function downloadAllStoryAudios() {
+  const story = appData.stories.find(s => s.id === activeStoryId);
+  if (!story || !story.audios || story.audios.length === 0) {
+    alert("เรื่องนี้ยังไม่มีไฟล์เสียงให้ดาวน์โหลดครับ");
+    return;
+  }
+
+  if (story.audios.length === 1) {
+    await downloadSingleAudio(story.audios[0]);
+    return;
+  }
+
+  const btn = document.getElementById("storyAudioDownloadAllBtn");
+  btn.disabled = true;
+  try {
+    const entries = [];
+    for (let i = 0; i < story.audios.length; i++) {
+      const aPath = story.audios[i];
+      const fname = aPath.split("/").pop();
+      btn.textContent = `⏳ กำลังดึงเสียง ${i + 1}/${story.audios.length}...`;
+      const item = await fetchPrivateMediaBlob(aPath);
+      entries.push({ name: fname, blob: item.blob, lastModified: Date.now() });
+    }
+    btn.textContent = "📦 กำลังแพ็กไฟล์เสียง .ZIP...";
+    const zipLabel = [story.episode, story.title, "voice"].filter(Boolean).join("_");
+    await buildAndDownloadZip(entries, zipLabel);
+  } catch (err) {
+    alert("ดาวน์โหลดไฟล์เสียงไม่สำเร็จ: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "⬇️ โหลดไฟล์เสียงทั้งหมด";
+  }
+}
+
+async function removeStoryAudio(idx) {
+  const story = appData.stories.find(s => s.id === activeStoryId);
+  if (!story || !story.audios) return;
+  const audioPath = story.audios[idx];
+  story.audios.splice(idx, 1);
+  renderStoryAudios(story);
+  await commitStoryEdits(true);
+  if (isGitHubConfigured() && audioPath) {
+    deleteFileFromGitHub(audioPath).catch(() => {});
   }
 }
 
