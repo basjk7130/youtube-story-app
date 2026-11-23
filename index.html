@@ -523,6 +523,60 @@
     flex-shrink: 0;
   }
 
+  /* Action Result Notification Popup (Always on top) */
+  #actionNotifyModal {
+    z-index: 300;
+    background: rgba(2, 6, 23, 0.72);
+  }
+  .notify-box {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    padding: 26px 24px 22px 24px;
+    text-align: center;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+    animation: notifyPop 0.16s ease-out;
+  }
+  @keyframes notifyPop {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .notify-box.type-success { border-color: #10b981; }
+  .notify-box.type-error { border-color: #ef4444; }
+  .notify-box.type-warning { border-color: #f59e0b; }
+  .notify-box.type-info { border-color: #3b82f6; }
+  .notify-icon {
+    font-size: 44px;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .notify-title {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .notify-box.type-success .notify-title { color: #34d399; }
+  .notify-box.type-error .notify-title { color: #f87171; }
+  .notify-box.type-warning .notify-title { color: #fcd34d; }
+  .notify-box.type-info .notify-title { color: #60a5fa; }
+  .notify-message {
+    margin: 0 0 20px 0;
+    font-size: 14px;
+    color: var(--text);
+    white-space: pre-line;
+    line-height: 1.6;
+  }
+  .notify-ok-btn {
+    min-width: 130px;
+    justify-content: center;
+    padding: 10px 24px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
   .meta-grid {
     display: grid;
     grid-template-columns: 220px 120px 1fr 200px;
@@ -1246,6 +1300,16 @@
   <video id="lightboxVideo" src="" controls autoplay style="display:none;"></video>
 </div>
 
+<!-- Action Notification Popup Modal -->
+<div id="actionNotifyModal" class="modal-backdrop" onclick="if(event.target === this) closeActionPopup()">
+  <div id="actionNotifyBox" class="notify-box type-success">
+    <div id="actionNotifyIcon" class="notify-icon">✅</div>
+    <h3 id="actionNotifyTitle" class="notify-title">บันทึกเรียบร้อยแล้ว</h3>
+    <p id="actionNotifyMessage" class="notify-message"></p>
+    <button type="button" id="actionNotifyOkBtn" class="btn btn-success notify-ok-btn" onclick="closeActionPopup()">ตกลง</button>
+  </div>
+</div>
+
 <script>
 const DAYS_7 = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
 const PAGE_SIZE = 10;
@@ -1299,6 +1363,49 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+// ================= ACTION NOTIFICATION POPUP =================
+function showActionPopup(type, title, message = "") {
+  const modal = document.getElementById("actionNotifyModal");
+  const box = document.getElementById("actionNotifyBox");
+  const iconEl = document.getElementById("actionNotifyIcon");
+  const titleEl = document.getElementById("actionNotifyTitle");
+  const msgEl = document.getElementById("actionNotifyMessage");
+  const okBtn = document.getElementById("actionNotifyOkBtn");
+
+  const configMap = {
+    success: { icon: "✅", btnClass: "btn btn-success notify-ok-btn" },
+    error: { icon: "❌", btnClass: "btn btn-danger notify-ok-btn" },
+    warning: { icon: "⚠️", btnClass: "btn btn-warning notify-ok-btn" },
+    info: { icon: "ℹ️", btnClass: "btn btn-primary notify-ok-btn" }
+  };
+  const cfg = configMap[type] || configMap.info;
+
+  box.className = `notify-box type-${type || "info"}`;
+  iconEl.textContent = cfg.icon;
+  titleEl.textContent = title || "แจ้งเตือน";
+  msgEl.textContent = message || "";
+  msgEl.style.display = message ? "block" : "none";
+  okBtn.className = cfg.btnClass;
+
+  modal.classList.add("open");
+  requestAnimationFrame(() => okBtn.focus());
+}
+
+function closeActionPopup() {
+  const modal = document.getElementById("actionNotifyModal");
+  if (modal) modal.classList.remove("open");
+}
+
+function notifyPersistResult(saveResult, successTitle, successDetail) {
+  if (saveResult && saveResult.ok) {
+    showActionPopup("success", successTitle, `${successDetail}\nซิงก์ขึ้น GitHub (${ghConfig.repo}) เรียบร้อยแล้ว`);
+  } else if (!isGitHubConfigured()) {
+    showActionPopup("warning", `${successTitle} (ในเครื่อง)`, `${successDetail}\nยังไม่ได้เชื่อมต่อ GitHub จึงบันทึกไว้ชั่วคราวในเครื่องเท่านั้น`);
+  } else {
+    showActionPopup("error", "บันทึกขึ้น GitHub ไม่สำเร็จ", `${successDetail}\nแต่ไม่สามารถส่งขึ้น GitHub ได้: ${(saveResult && saveResult.error) || "ไม่ทราบสาเหตุ"}`);
+  }
+}
+
 // ================= GITHUB API & MAGIC AUTO-LOGIN LINK =================
 function loadGitHubConfig() {
   if (window.location.hash && window.location.hash.startsWith("#connect=")) {
@@ -1336,14 +1443,14 @@ function updateMagicLinkButtonVisibility() {
 
 function copyMagicLoginLink() {
   if (!isGitHubConfigured()) {
-    alert("กรุณากรอกข้อมูลเชื่อมต่อ GitHub และกดบันทึกก่อนครับ");
+    showActionPopup("warning", "ยังไม่ได้เชื่อมต่อ GitHub", "กรุณากรอกข้อมูลเชื่อมต่อ GitHub และกดบันทึกก่อนครับ");
     return;
   }
   const payload = utf8ToBase64(JSON.stringify(ghConfig));
   const baseUrl = window.location.origin + window.location.pathname;
   const magicUrl = `${baseUrl}#connect=${encodeURIComponent(payload)}`;
   navigator.clipboard.writeText(magicUrl).then(() => {
-    alert("คัดลอกลิงก์เข้าสู่ระบบอัตโนมัติแล้ว!\n\nนำลิงก์นี้ไปเปิดในเบราว์เซอร์อื่น มือถือ หรือคอมที่บ้าน แล้วกดบุ๊กมาร์ก (รูปดาว) เก็บไว้ จะเข้าใช้งานได้ทันทีโดยไม่ต้องกรอกรหัสซ้ำครับ");
+    showActionPopup("success", "คัดลอกลิงก์เข้าสู่ระบบแล้ว", "นำลิงก์นี้ไปเปิดในเบราว์เซอร์อื่น มือถือ หรือคอมที่บ้าน แล้วกดบุ๊กมาร์กเก็บไว้ จะเข้าใช้งานได้ทันทีโดยไม่ต้องกรอกรหัสซ้ำครับ");
   });
 }
 
@@ -1366,7 +1473,7 @@ async function saveGitHubConfig() {
   ghConfig.token = document.getElementById("ghTokenInput").value.trim();
 
   if (!isGitHubConfigured()) {
-    alert("กรุณากรอก Username, ชื่อ Repository และ Token ให้ครบครับ");
+    showActionPopup("warning", "ข้อมูลไม่ครบถ้วน", "กรุณากรอก Username, ชื่อ Repository และ Token ให้ครบครับ");
     return;
   }
   localStorage.setItem("yt_gh_cloud_cfg", JSON.stringify(ghConfig));
@@ -1382,6 +1489,7 @@ function disconnectGitHub() {
   updateMagicLinkButtonVisibility();
   setSaveStatus("offline", "🔴 ยกเลิกการเชื่อมต่อ GitHub แล้ว");
   closeGitHubConfigModal();
+  showActionPopup("info", "ล้างค่าเชื่อมต่อแล้ว", "ยกเลิกการเชื่อมต่อ GitHub ออกจากเบราว์เซอร์นี้เรียบร้อยแล้ว");
 }
 
 function utf8ToBase64(str) {
@@ -1463,6 +1571,9 @@ async function syncFromGitHub(showAlertOnSuccess = false) {
   if (!isGitHubConfigured()) {
     setSaveStatus("offline", "🔴 กดปุ่ม '☁️ เชื่อมต่อ GitHub' เพื่อซิงก์ออนไลน์");
     renderAll();
+    if (showAlertOnSuccess) {
+      showActionPopup("warning", "ยังไม่ได้เชื่อมต่อ GitHub", "กรุณากดปุ่ม '☁️ เชื่อมต่อ GitHub' เพื่อกรอกรหัส Token ก่อนครับ");
+    }
     return;
   }
 
@@ -1491,7 +1602,9 @@ async function syncFromGitHub(showAlertOnSuccess = false) {
         throw new Error(`สร้างไฟล์ stories_data.json ไม่สำเร็จ: ${saveResult.error || "กรุณาตรวจสอบสิทธิ์ Token (Contents: Read and write)"}`);
       }
       renderAll();
-      if (showAlertOnSuccess) alert("เชื่อมต่อสำเร็จ! สร้างฐานข้อมูลใหม่บน GitHub เรียบร้อยแล้วครับ");
+      if (showAlertOnSuccess) {
+        showActionPopup("success", "เชื่อมต่อ GitHub สำเร็จ!", `สร้างไฟล์ฐานข้อมูลใหม่ในคลัง ${ghConfig.repo} เรียบร้อยแล้ว`);
+      }
       return;
     }
 
@@ -1547,10 +1660,12 @@ async function syncFromGitHub(showAlertOnSuccess = false) {
     updateMagicLinkButtonVisibility();
     setSaveStatus("saved", `🟢 ซิงก์ GitHub แล้ว (${ghConfig.repo})`);
     renderAll();
-    if (showAlertOnSuccess) alert("ดึงข้อมูลล่าสุดจาก GitHub เรียบร้อยแล้ว!");
+    if (showAlertOnSuccess) {
+      showActionPopup("success", "ดึงข้อมูลล่าสุดเรียบร้อย!", `ซิงก์ข้อมูลจากคลัง ${ghConfig.repo} สำเร็จ (${appData.stories.length} เรื่อง)`);
+    }
   } catch (err) {
     setSaveStatus("offline", "🔴 เชื่อมต่อ GitHub ไม่สำเร็จ");
-    alert("ไม่สามารถเชื่อมต่อ GitHub ได้: " + err.message + "\nกรุณาตรวจสอบ Username, ชื่อ Repo และ Token อีกครั้ง");
+    showActionPopup("error", "เชื่อมต่อ GitHub ไม่สำเร็จ", `${err.message}\nกรุณาตรวจสอบ Username, ชื่อ Repo และ Token อีกครั้ง`);
   }
 }
 
@@ -1649,6 +1764,15 @@ async function initApp() {
   setupBatchDropzone();
 
   document.addEventListener("keydown", e => {
+    const notifyModal = document.getElementById("actionNotifyModal");
+    if (notifyModal && notifyModal.classList.contains("open")) {
+      if (e.key === "Enter" || e.key === "Escape") {
+        e.preventDefault();
+        closeActionPopup();
+      }
+      return;
+    }
+
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
       const modal = document.getElementById("storyModal");
       if (modal && modal.classList.contains("open")) {
@@ -1727,7 +1851,7 @@ function setupBatchDropzone() {
       if (folderName) document.getElementById("batchZipName").value = folderName;
       addFilesToBatchQueue(collectedFiles);
     } else {
-      alert("ไม่พบไฟล์รูปภาพหรือวีดีโอที่รองรับในโฟลเดอร์ที่ลากมาวาง");
+      showActionPopup("warning", "ไม่พบไฟล์ที่รองรับ", "ไม่พบไฟล์รูปภาพหรือวีดีโอที่รองรับในโฟลเดอร์ที่ลากมาวาง");
     }
   });
 }
@@ -1945,8 +2069,9 @@ async function downloadBatchZip() {
     }));
     const rawZipName = document.getElementById("batchZipName").value || "renamed_media";
     await buildAndDownloadZip(entries, rawZipName);
+    showActionPopup("success", "สร้างไฟล์ .ZIP เรียบร้อย!", `ดาวน์โหลดทั้งหมด ${entries.length} ไฟล์ลงเครื่องแล้ว`);
   } catch (err) {
-    alert("เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP: " + err.message);
+    showActionPopup("error", "สร้างไฟล์ .ZIP ไม่สำเร็จ", err.message);
   } finally {
     btnTop.disabled = false;
     btnFoot.disabled = false;
@@ -2015,21 +2140,30 @@ function closeSchedModal() {
   document.getElementById("schedModal").classList.remove("open");
 }
 
-function confirmAddSchedule() {
+async function confirmAddSchedule() {
   const chId = document.getElementById("schedChannelSelect").value;
   const note = document.getElementById("schedNoteInput").value.trim();
   if (!chId || !activeSchedDay) return;
-  if (!appData.schedule[activeSchedDay]) appData.schedule[activeSchedDay] = [];
-  appData.schedule[activeSchedDay].push({ channelId: chId, note });
+  const targetDay = activeSchedDay;
+  const ch = appData.channels.find(c => c.id === chId);
+  const chName = ch ? ch.name : "";
+
+  if (!appData.schedule[targetDay]) appData.schedule[targetDay] = [];
+  appData.schedule[targetDay].push({ channelId: chId, note });
   closeSchedModal();
   renderSchedule();
-  persistData();
+  const saveRes = await persistData();
+  notifyPersistResult(saveRes, "เพิ่มตารางลงคลิปเรียบร้อย!", `เพิ่มช่อง "${chName}" ลงในวัน${targetDay}${note ? ` (${note})` : ""}`);
 }
 
-function removeScheduleItem(day, idx) {
+async function removeScheduleItem(day, idx) {
+  const removed = appData.schedule[day] && appData.schedule[day][idx];
+  const ch = removed ? appData.channels.find(c => c.id === removed.channelId) : null;
+  const chName = ch ? ch.name : "รายการ";
   appData.schedule[day].splice(idx, 1);
   renderSchedule();
-  persistData();
+  const saveRes = await persistData();
+  notifyPersistResult(saveRes, "ลบออกจากตารางเรียบร้อย!", `ลบ "${chName}" ออกจากตารางวัน${day}`);
 }
 
 // ================= CHANNEL MANAGEMENT =================
@@ -2085,30 +2219,40 @@ function renderChannelManageList() {
   `).join("");
 }
 
-function updateChannel(idx, field, val) {
+async function updateChannel(idx, field, val) {
   if (!val.trim()) return;
   appData.channels[idx][field] = val.trim();
-  persistData();
+  renderAll();
+  const saveRes = await persistData();
+  const fieldLabel = field === "color" ? "สีประจำช่อง" : "ชื่อช่อง";
+  notifyPersistResult(saveRes, "แก้ไขช่องเรียบร้อย!", `บันทึกการเปลี่ยน${fieldLabel} "${appData.channels[idx].name}" แล้ว`);
 }
 
-function addChannel() {
+async function addChannel() {
   const nameInput = document.getElementById("newChannelName");
   const colorInput = document.getElementById("newChannelColor");
   const name = nameInput.value.trim();
-  if (!name) return alert("กรุณาพิมพ์ชื่อช่องก่อนครับ");
+  if (!name) {
+    showActionPopup("warning", "ยังไม่ได้กรอกชื่อช่อง", "กรุณาพิมพ์ชื่อช่อง YouTube ก่อนกดเพิ่มครับ");
+    return;
+  }
   appData.channels.push({ id: "ch_" + Date.now(), name, color: colorInput.value });
   nameInput.value = "";
   renderChannelManageList();
-  persistData();
+  renderAll();
+  const saveRes = await persistData();
+  notifyPersistResult(saveRes, "เพิ่มช่องใหม่เรียบร้อย!", `เพิ่มช่อง "${name}" เข้าระบบแล้ว`);
 }
 
-function deleteChannel(idx) {
+async function deleteChannel(idx) {
   const ch = appData.channels[idx];
   if (!confirm(`ยืนยันการลบช่อง "${ch.name}" ใช่หรือไม่?`)) return;
   appData.channels.splice(idx, 1);
   if (selectedChannelFilter === ch.id) selectedChannelFilter = "ALL";
   renderChannelManageList();
-  persistData();
+  renderAll();
+  const saveRes = await persistData();
+  notifyPersistResult(saveRes, "ลบช่องเรียบร้อย!", `ลบช่อง "${ch.name}" ออกจากระบบแล้ว`);
 }
 
 // ================= STATUS HELPER & AUTO STATUS LOGIC =================
@@ -2329,7 +2473,6 @@ function openStoryModal(storyId) {
   const isNewStory = !storyId;
   isNewStoryDraft = isNewStory;
 
-  // จำตำแหน่งหน้าจอเดิมไว้ (ถ้าเพิ่มเรื่องใหม่ ให้ตั้งเป้ากลับขึ้นบนสุด)
   savedPageScrollY = isNewStory ? 0 : window.scrollY;
 
   if (storyId) {
@@ -2346,7 +2489,6 @@ function openStoryModal(storyId) {
       ? selectedChannelFilter
       : (appData.channels[0] ? appData.channels[0].id : "");
     const nextNum = appData.stories.filter(s => s.channelId === defaultCh).length + 1;
-    // สร้างแค่ร่างชั่วคราวในหน่วยความจำ ยังไม่เพิ่มเข้า appData และยังไม่บันทึกลง GitHub
     editingStoryDraft = {
       id: "story_" + Date.now(),
       channelId: defaultCh,
@@ -2377,7 +2519,6 @@ function openStoryModal(storyId) {
   renderStoryGallery();
   renderStoryAudios();
 
-  // เด้งหน้าเว็บขึ้นบนสุดเฉพาะตอนกด "เพิ่มเรื่องใหม่"
   if (isNewStory) {
     window.scrollTo({ top: 0, behavior: "auto" });
   }
@@ -2399,7 +2540,7 @@ function openStoryModal(storyId) {
 
 function closeStoryModal(forceClose = false) {
   if (isSavingStory || isUploadingMedia || isUploadingAudio) {
-    alert("ระบบกำลังบันทึกและอัปโหลดไฟล์ขึ้น GitHub อยู่ กรุณารอจนเสร็จก่อนปิดหน้าต่างครับ");
+    showActionPopup("warning", "กำลังบันทึกข้อมูล", "ระบบกำลังบันทึกและอัปโหลดไฟล์ขึ้น GitHub อยู่ กรุณารอจนเสร็จก่อนปิดหน้าต่างครับ");
     return;
   }
 
@@ -2433,14 +2574,19 @@ async function saveCurrentStoryAndNotify() {
 
   const hasPendingFiles = pendingMediaItems.length > 0 || pendingAudioItems.length > 0;
   if (hasPendingFiles && !isGitHubConfigured()) {
-    alert("กรุณากรอกรหัส GitHub Token ในหน้าต่างเชื่อมต่อก่อนบันทึกไฟล์รูปภาพ/วีดีโอ/เสียงครับ");
+    showActionPopup("warning", "ยังไม่ได้เชื่อมต่อ GitHub", "กรุณากรอกรหัส GitHub Token ในหน้าต่างเชื่อมต่อก่อนบันทึกไฟล์รูปภาพ/วีดีโอ/เสียงครับ");
     openGitHubConfigModal();
     return;
   }
 
+  const wasNewStory = isNewStoryDraft;
   isSavingStory = true;
   setStorySaveButtonsDisabled(true);
   updateModalSaveHint("saving");
+
+  let uploadedMediaCount = 0;
+  let uploadedAudioCount = 0;
+  let deletedFilesCount = 0;
 
   try {
     editingStoryDraft.channelId = document.getElementById("editChannelId").value;
@@ -2462,6 +2608,7 @@ async function saveCurrentStoryAndNotify() {
           continue;
         }
         await deleteFileFromGitHub(delPath).catch(() => {});
+        deletedFilesCount++;
       }
     }
 
@@ -2471,7 +2618,6 @@ async function saveCurrentStoryAndNotify() {
       let maxSeq = getSavedMediaMaxSeq();
       const itemsToUpload = [...pendingMediaItems];
       const remainingFailedMedia = [];
-      let uploadedCount = 0;
 
       for (let i = 0; i < itemsToUpload.length; i++) {
         const item = itemsToUpload[i];
@@ -2499,7 +2645,7 @@ async function saveCurrentStoryAndNotify() {
           await uploadSingleFileWithRetry(repoPath, b64);
 
           maxSeq = nextNum;
-          uploadedCount++;
+          uploadedMediaCount++;
           mediaBlobCache[repoPath] = { blob: file, url: item.url };
           if (!editingStoryDraft.images.includes(repoPath)) {
             editingStoryDraft.images.push(repoPath);
@@ -2517,7 +2663,7 @@ async function saveCurrentStoryAndNotify() {
       updateModalUploadProgress(
         itemsToUpload.length,
         itemsToUpload.length,
-        `✅ อัปโหลดภาพเสร็จสมบูรณ์ ${uploadedCount} จาก ${itemsToUpload.length} ไฟล์!`,
+        `✅ อัปโหลดภาพเสร็จสมบูรณ์ ${uploadedMediaCount} จาก ${itemsToUpload.length} ไฟล์!`,
         "กำลังซ่อนแถบสถานะ..."
       );
     }
@@ -2527,7 +2673,6 @@ async function saveCurrentStoryAndNotify() {
       isUploadingAudio = true;
       const itemsToUpload = [...pendingAudioItems];
       const remainingFailedAudio = [];
-      let uploadedCount = 0;
 
       for (let i = 0; i < itemsToUpload.length; i++) {
         const item = itemsToUpload[i];
@@ -2553,7 +2698,7 @@ async function saveCurrentStoryAndNotify() {
           const b64 = await fileToBase64Raw(file);
           await uploadSingleFileWithRetry(repoPath, b64);
 
-          uploadedCount++;
+          uploadedAudioCount++;
           mediaBlobCache[repoPath] = { blob: file, url: item.url };
           if (!editingStoryDraft.audios.includes(repoPath)) {
             editingStoryDraft.audios.push(repoPath);
@@ -2571,7 +2716,7 @@ async function saveCurrentStoryAndNotify() {
       updateModalAudioProgress(
         itemsToUpload.length,
         itemsToUpload.length,
-        `✅ อัปโหลดไฟล์เสียงเสร็จสมบูรณ์ ${uploadedCount} จาก ${itemsToUpload.length} ไฟล์!`,
+        `✅ อัปโหลดไฟล์เสียงเสร็จสมบูรณ์ ${uploadedAudioCount} จาก ${itemsToUpload.length} ไฟล์!`,
         "กำลังซ่อนแถบสถานะ..."
       );
     }
@@ -2598,29 +2743,38 @@ async function saveCurrentStoryAndNotify() {
     renderStoryGallery();
     renderStoryAudios();
 
-    // 5. บันทึกไฟล์ stories_data.json ขึ้น GitHub
+    // 5. บันทึกไฟล์ stories_data.json ขึ้น GitHub และเด้งป๊อปอัพแจ้งผลชัดเจน
     const saveResult = await persistData();
     const stillHasPending = pendingMediaItems.length > 0 || pendingAudioItems.length > 0;
+    const storyLabel = [editingStoryDraft.episode, editingStoryDraft.title || "(ไม่มีชื่อเรื่อง)"].filter(Boolean).join(" - ");
+
+    const summaryLines = [`เรื่อง: ${storyLabel}`];
+    if (uploadedMediaCount > 0) summaryLines.push(`🖼️ อัปโหลดภาพ/วีดีโอสำเร็จ: ${uploadedMediaCount} ไฟล์`);
+    if (uploadedAudioCount > 0) summaryLines.push(`🎙️ อัปโหลดไฟล์เสียงสำเร็จ: ${uploadedAudioCount} ไฟล์`);
+    if (deletedFilesCount > 0) summaryLines.push(`🗑️ ลบไฟล์เก่าออกจาก GitHub: ${deletedFilesCount} ไฟล์`);
+    if (skippedLarge.length > 0) summaryLines.push(`⚠️ ข้ามไฟล์ขนาดเกิน 50 MB: ${skippedLarge.length} ไฟล์`);
+    if (failedFiles.length > 0) summaryLines.push(`❌ อัปโหลดไม่สำเร็จ (${failedFiles.length} ไฟล์):\n- ${failedFiles.join("\n- ")}`);
 
     if (saveResult.ok && !stillHasPending) {
       hasUnsavedChanges = false;
       updateModalSaveHint("saved");
+      const titleText = wasNewStory
+        ? "เพิ่มเรื่องใหม่และบันทึกเรียบร้อย!"
+        : "บันทึกการแก้ไขเรียบร้อยแล้ว!";
+      summaryLines.push(`☁️ ซิงก์ขึ้น GitHub (${ghConfig.repo}) สำเร็จเวลา ${new Date().toLocaleTimeString("th-TH")}`);
+      showActionPopup(skippedLarge.length > 0 ? "warning" : "success", titleText, summaryLines.join("\n"));
     } else if (!isGitHubConfigured() && !stillHasPending) {
       hasUnsavedChanges = false;
       updateModalSaveHint("local");
+      summaryLines.push("บันทึกไว้ในเครื่องชั่วคราวแล้ว (ยังไม่ได้เชื่อมต่อ GitHub)");
+      showActionPopup("warning", "บันทึกในเครื่องแล้ว (ยังไม่ขึ้น GitHub)", summaryLines.join("\n"));
     } else {
       hasUnsavedChanges = true;
       updateModalSaveHint("error", saveResult.error || "มีบางไฟล์ยังอัปโหลดไม่เสร็จ");
       if (saveResult.error && isGitHubConfigured()) {
-        alert("บันทึกฐานข้อมูลขึ้น GitHub ไม่สำเร็จ: " + saveResult.error);
+        summaryLines.push(`สาเหตุ: ${saveResult.error}`);
       }
-    }
-
-    if (skippedLarge.length > 0) {
-      alert("ไฟล์ต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกอัปโหลด:\n- " + skippedLarge.join("\n- "));
-    }
-    if (failedFiles.length > 0) {
-      alert("มีบางไฟล์อัปโหลดไม่สำเร็จ (ยังค้างไว้ให้กดบันทึกลองใหม่ได้):\n- " + failedFiles.join("\n- "));
+      showActionPopup("error", "บันทึกขึ้น GitHub ไม่สมบูรณ์", summaryLines.join("\n"));
     }
   } finally {
     isUploadingMedia = false;
@@ -2646,20 +2800,27 @@ function deleteCurrentStoryFromModal() {
 async function deleteStoryById(storyId, skipConfirm = false) {
   const story = appData.stories.find(s => s.id === storyId);
   if (!story) return;
+  const label = [story.episode, story.title].filter(Boolean).join(" - ") || "(ไม่มีชื่อเรื่อง)";
   if (!skipConfirm) {
-    if (!confirm(`ต้องการลบเรื่อง "${story.title || story.episode}" และไฟล์ภาพ/เสียงทั้งหมดของเรื่องนี้บน GitHub ใช่หรือไม่?`)) return;
+    if (!confirm(`ต้องการลบเรื่อง "${label}" และไฟล์ภาพ/เสียงทั้งหมดของเรื่องนี้บน GitHub ใช่หรือไม่?`)) return;
   }
 
   const filesToDelete = [...(story.images || []), ...(story.audios || [])];
   appData.stories = appData.stories.filter(s => s.id !== storyId);
   renderAll();
-  await persistData();
+  const saveRes = await persistData();
 
-  if (isGitHubConfigured()) {
+  if (isGitHubConfigured() && filesToDelete.length > 0) {
     for (const fPath of filesToDelete) {
       deleteFileFromGitHub(fPath).catch(() => {});
     }
   }
+
+  notifyPersistResult(
+    saveRes,
+    "ลบเรื่องเรียบร้อยแล้ว!",
+    `ลบเรื่อง "${label}"${filesToDelete.length > 0 ? ` และไฟล์แนบ ${filesToDelete.length} ไฟล์` : ""} ออกจากรายการแล้ว`
+  );
 }
 
 async function deleteFileFromGitHub(filePath) {
@@ -2699,7 +2860,9 @@ function updateWordCount() {
 
 function copyStoryPlainText() {
   const text = document.getElementById("wordEditor").innerText;
-  navigator.clipboard.writeText(text).then(() => alert("คัดลอกเนื้อเรื่องทั้งหมดเรียบร้อยแล้ว!"));
+  navigator.clipboard.writeText(text).then(() => {
+    showActionPopup("success", "คัดลอกเนื้อเรื่องแล้ว!", "สามารถนำไปวางใช้งานต่อได้ทันที");
+  });
 }
 
 // ================= FILE TYPE CHECKERS =================
@@ -2789,7 +2952,7 @@ function setupDropzone() {
     if (collectedFiles.length > 0) {
       stageMediaFiles(collectedFiles);
     } else {
-      alert("ไม่พบไฟล์รูปภาพหรือวีดีโอที่รองรับในโฟลเดอร์ที่ลากมาวาง");
+      showActionPopup("warning", "ไม่พบไฟล์ที่รองรับ", "ไม่พบไฟล์รูปภาพหรือวีดีโอที่รองรับในโฟลเดอร์ที่ลากมาวาง");
     }
   });
 }
@@ -2805,7 +2968,7 @@ function handleManualFileSelect(inputEl) {
 function stageMediaFiles(files) {
   if (!editingStoryDraft) return;
   if (isSavingStory) {
-    alert("กำลังบันทึกอยู่ กรุณารอสักครู่ครับ");
+    showActionPopup("warning", "กำลังบันทึกอยู่", "กรุณารอให้การบันทึกชุดก่อนหน้าเสร็จก่อนครับ");
     return;
   }
 
@@ -2835,9 +2998,16 @@ function stageMediaFiles(files) {
     applyAutoProductionStatusDraft();
     markStoryDirty();
     renderStoryGallery();
-  }
-  if (skippedLarge.length > 0) {
-    alert("ไฟล์ต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกเพิ่ม:\n- " + skippedLarge.join("\n- "));
+    const extraWarn = skippedLarge.length > 0
+      ? `\n\n⚠️ ข้ามไฟล์เกิน 50 MB (${skippedLarge.length} ไฟล์):\n- ${skippedLarge.join("\n- ")}`
+      : "";
+    showActionPopup(
+      skippedLarge.length > 0 ? "warning" : "info",
+      `เพิ่มภาพ/วีดีโอ ${added} ไฟล์แล้ว (รอบันทึก)`,
+      `ไฟล์ถูกนำมารอไว้เรียบร้อยแล้ว\nกรุณากดปุ่ม "💾 บันทึกขึ้น GitHub" เพื่ออัปโหลดจริง${extraWarn}`
+    );
+  } else if (skippedLarge.length > 0) {
+    showActionPopup("error", "ไฟล์มีขนาดเกิน 50 MB", "ไฟล์ต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกเพิ่ม:\n- " + skippedLarge.join("\n- "));
   }
 }
 
@@ -3018,7 +3188,7 @@ async function openMediaLightbox(mediaPath, isVideo) {
     setSaveStatus("saved", "🟢 ซิงก์ GitHub แล้ว");
     showLightboxUrl(item.url, isVideo);
   } catch (err) {
-    alert(err.message);
+    showActionPopup("error", "เปิดไฟล์ไม่สำเร็จ", err.message);
   }
 }
 
@@ -3034,12 +3204,14 @@ function closeLightbox(e) {
 function removeSavedStoryImage(idx) {
   if (!editingStoryDraft || !editingStoryDraft.images) return;
   const mediaPath = editingStoryDraft.images[idx];
+  const fileName = mediaPath ? mediaPath.split("/").pop() : "ไฟล์";
   editingStoryDraft.images.splice(idx, 1);
   if (mediaPath && !pendingDeletePaths.includes(mediaPath)) {
     pendingDeletePaths.push(mediaPath);
   }
   markStoryDirty();
   renderStoryGallery();
+  showActionPopup("info", "นำไฟล์ออกชั่วคราวแล้ว (รอบันทึก)", `นำ "${fileName}" ออกจากรายการแล้ว\nกดปุ่ม "💾 บันทึกขึ้น GitHub" เพื่อยืนยันการลบจริง`);
 }
 
 function removePendingStoryImage(tempId) {
@@ -3049,13 +3221,14 @@ function removePendingStoryImage(tempId) {
   if (removed && removed.url) URL.revokeObjectURL(removed.url);
   markStoryDirty();
   renderStoryGallery();
+  showActionPopup("info", "นำไฟล์ออกแล้ว", `ยกเลิกการเพิ่มไฟล์ "${removed.file.name}" เรียบร้อยแล้ว`);
 }
 
 async function downloadStoryMediaZip() {
   if (!editingStoryDraft) return;
   const savedMedia = editingStoryDraft.images || [];
   if (savedMedia.length === 0 && pendingMediaItems.length === 0) {
-    alert("เรื่องนี้ยังไม่มีไฟล์รูปภาพหรือวีดีโอให้ดาวน์โหลดครับ");
+    showActionPopup("warning", "ยังไม่มีไฟล์ให้ดาวน์โหลด", "เรื่องนี้ยังไม่มีไฟล์รูปภาพหรือวีดีโอครับ");
     return;
   }
   const btn = document.getElementById("storyZipBtn");
@@ -3079,8 +3252,9 @@ async function downloadStoryMediaZip() {
     btn.textContent = "📦 กำลังแพ็กเป็นไฟล์ .ZIP...";
     const zipLabel = [editingStoryDraft.episode, editingStoryDraft.title].filter(Boolean).join("_") || editingStoryDraft.id;
     await buildAndDownloadZip(entries, zipLabel);
+    showActionPopup("success", "ดาวน์โหลดไฟล์ .ZIP เรียบร้อย!", `แพ็กและดาวน์โหลดภาพ/วีดีโอทั้งหมด ${entries.length} ไฟล์แล้ว`);
   } catch (err) {
-    alert("ดาวน์โหลดไฟล์ไม่สำเร็จ: " + err.message);
+    showActionPopup("error", "ดาวน์โหลดไฟล์ไม่สำเร็จ", err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = "📦 โหลดออกมาทั้งโฟลเดอร์ (.ZIP)";
@@ -3121,7 +3295,7 @@ function setupAudioDropzone() {
     if (collectedFiles.length > 0) {
       stageAudioFiles(collectedFiles);
     } else {
-      alert("ไม่พบไฟล์เสียงที่รองรับ (.mp3, .wav, .m4a, .aac, .ogg) ในไฟล์ที่ลากมาวาง");
+      showActionPopup("warning", "ไม่พบไฟล์เสียงที่รองรับ", "รองรับเฉพาะไฟล์ .mp3, .wav, .m4a, .aac, .ogg, .flac, .wma");
     }
   });
 }
@@ -3137,7 +3311,7 @@ function handleManualAudioSelect(inputEl) {
 function stageAudioFiles(files) {
   if (!editingStoryDraft) return;
   if (isSavingStory) {
-    alert("กำลังบันทึกอยู่ กรุณารอสักครู่ครับ");
+    showActionPopup("warning", "กำลังบันทึกอยู่", "กรุณารอให้การบันทึกชุดก่อนหน้าเสร็จก่อนครับ");
     return;
   }
 
@@ -3174,9 +3348,16 @@ function stageAudioFiles(files) {
     applyAutoProductionStatusDraft();
     markStoryDirty();
     renderStoryAudios();
-  }
-  if (skippedLarge.length > 0) {
-    alert("ไฟล์เสียงต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกเพิ่ม:\n- " + skippedLarge.join("\n- "));
+    const extraWarn = skippedLarge.length > 0
+      ? `\n\n⚠️ ข้ามไฟล์เกิน 50 MB (${skippedLarge.length} ไฟล์):\n- ${skippedLarge.join("\n- ")}`
+      : "";
+    showActionPopup(
+      skippedLarge.length > 0 ? "warning" : "info",
+      `เพิ่มไฟล์เสียง ${added} ไฟล์แล้ว (รอบันทึก)`,
+      `ไฟล์เสียงถูกนำมารอไว้เรียบร้อยแล้ว\nกรุณากดปุ่ม "💾 บันทึกขึ้น GitHub" เพื่ออัปโหลดจริง${extraWarn}`
+    );
+  } else if (skippedLarge.length > 0) {
+    showActionPopup("error", "ไฟล์เสียงมีขนาดเกิน 50 MB", "ไฟล์ต่อไปนี้มีขนาดเกิน 50 MB จึงไม่ถูกเพิ่ม:\n- " + skippedLarge.join("\n- "));
   }
 }
 
@@ -3300,7 +3481,7 @@ async function downloadSingleAudio(audioPath) {
     a.click();
     a.remove();
   } catch (err) {
-    alert("ดาวน์โหลดไฟล์เสียงไม่สำเร็จ: " + err.message);
+    showActionPopup("error", "ดาวน์โหลดไฟล์เสียงไม่สำเร็จ", err.message);
   }
 }
 
@@ -3309,7 +3490,7 @@ async function downloadAllStoryAudios() {
   const savedAudios = editingStoryDraft.audios || [];
   const totalCount = savedAudios.length + pendingAudioItems.length;
   if (totalCount === 0) {
-    alert("เรื่องนี้ยังไม่มีไฟล์เสียงให้ดาวน์โหลดครับ");
+    showActionPopup("warning", "ยังไม่มีไฟล์เสียงให้ดาวน์โหลด", "เรื่องนี้ยังไม่มีไฟล์เสียงพากย์ครับ");
     return;
   }
 
@@ -3340,8 +3521,9 @@ async function downloadAllStoryAudios() {
     btn.textContent = "📦 กำลังแพ็กไฟล์เสียง .ZIP...";
     const zipLabel = [editingStoryDraft.episode, editingStoryDraft.title, "voice"].filter(Boolean).join("_");
     await buildAndDownloadZip(entries, zipLabel);
+    showActionPopup("success", "ดาวน์โหลดไฟล์เสียงเรียบร้อย!", `แพ็กและดาวน์โหลดไฟล์เสียงทั้งหมด ${entries.length} ไฟล์แล้ว`);
   } catch (err) {
-    alert("ดาวน์โหลดไฟล์เสียงไม่สำเร็จ: " + err.message);
+    showActionPopup("error", "ดาวน์โหลดไฟล์เสียงไม่สำเร็จ", err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = "⬇️ โหลดไฟล์เสียงทั้งหมด";
@@ -3351,12 +3533,14 @@ async function downloadAllStoryAudios() {
 function removeSavedStoryAudio(idx) {
   if (!editingStoryDraft || !editingStoryDraft.audios) return;
   const audioPath = editingStoryDraft.audios[idx];
+  const fileName = audioPath ? audioPath.split("/").pop() : "ไฟล์เสียง";
   editingStoryDraft.audios.splice(idx, 1);
   if (audioPath && !pendingDeletePaths.includes(audioPath)) {
     pendingDeletePaths.push(audioPath);
   }
   markStoryDirty();
   renderStoryAudios();
+  showActionPopup("info", "นำไฟล์เสียงออกชั่วคราวแล้ว (รอบันทึก)", `นำ "${fileName}" ออกจากรายการแล้ว\nกดปุ่ม "💾 บันทึกขึ้น GitHub" เพื่อยืนยันการลบจริง`);
 }
 
 function removePendingStoryAudio(tempId) {
@@ -3366,6 +3550,7 @@ function removePendingStoryAudio(tempId) {
   if (removed && removed.url) URL.revokeObjectURL(removed.url);
   markStoryDirty();
   renderStoryAudios();
+  showActionPopup("info", "นำไฟล์เสียงออกแล้ว", `ยกเลิกการเพิ่มไฟล์ "${removed.safeFileName}" เรียบร้อยแล้ว`);
 }
 
 // ================= HELPERS =================
