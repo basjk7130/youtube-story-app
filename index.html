@@ -713,6 +713,7 @@
     <span id="saveStatus" class="status-pill offline">🔴 ยังไม่ได้เชื่อมต่อ GitHub</span>
   </div>
   <div class="top-actions">
+    <button class="btn btn-success" id="copyMagicLinkBtn" style="display:none;" onclick="copyMagicLoginLink()">🔗 คัดลอกลิงก์เข้าทันที</button>
     <button class="btn btn-warning" onclick="openGitHubConfigModal()">☁️ เชื่อมต่อ GitHub</button>
     <button class="btn" onclick="syncFromGitHub(true)">🔄 ดึงข้อมูลล่าสุด</button>
     <button class="btn btn-cyan" onclick="openBatchToolModal()">📦 แปลงไฟล์ & เรียงชื่อ (.ZIP)</button>
@@ -782,15 +783,15 @@
     </div>
     <div class="modal-body">
       <p style="font-size:13px; color:var(--text-muted); margin-top:0;">
-        กรอกข้อมูล Repository ส่วนตัว (Private) ที่ใช้เก็บฐานข้อมูลและไฟล์รูป/วีดีโอ ทำเพียงเครื่องละ 1 ครั้ง (ที่ทำงาน 1 ครั้ง / ที่บ้าน 1 ครั้ง)
+        กรอกข้อมูล Repository ส่วนตัว (Private) ที่ใช้เก็บฐานข้อมูลและไฟล์รูป/วีดีโอ เมื่อบันทึกแล้วสามารถกดปุ่ม <b>🔗 คัดลอกลิงก์เข้าทันที</b> เพื่อนำไปเปิดในเบราว์เซอร์อื่นได้โดยไม่ต้องกรอกซ้ำ
       </p>
       <div style="margin-bottom:12px;">
         <label class="field-label">1. ชื่อผู้ใช้ GitHub (Username)</label>
-        <input id="ghOwnerInput" class="input" type="text" style="width:100%;" placeholder="เช่น basbpg">
+        <input id="ghOwnerInput" class="input" type="text" style="width:100%;" value="basjk7130">
       </div>
       <div style="margin-bottom:12px;">
         <label class="field-label">2. ชื่อ Repository สำหรับเก็บข้อมูล (ต้องเป็น Private)</label>
-        <input id="ghRepoInput" class="input" type="text" style="width:100%;" placeholder="เช่น my-youtube-data">
+        <input id="ghRepoInput" class="input" type="text" style="width:100%;" value="my-youtube-data">
       </div>
       <div style="margin-bottom:12px;">
         <label class="field-label">3. Branch (ค่าเริ่มต้นคือ main)</label>
@@ -800,9 +801,12 @@
         <label class="field-label">4. GitHub Personal Access Token (สิทธิ์ Contents: Read and write)</label>
         <input id="ghTokenInput" class="input" type="password" style="width:100%;" placeholder="github_pat_xxxxxxxxxxxx">
       </div>
-      <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px;">
         <button type="button" class="btn btn-danger btn-sm" onclick="disconnectGitHub()">ล้างค่าเชื่อมต่อ</button>
-        <button type="button" class="btn btn-success" onclick="saveGitHubConfig()">💾 บันทึกและเชื่อมต่อทันที</button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn btn-cyan btn-sm" onclick="copyMagicLoginLink()">🔗 คัดลอกลิงก์เข้าทันที</button>
+          <button type="button" class="btn btn-success" onclick="saveGitHubConfig()">💾 บันทึกและเชื่อมต่อทันที</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1064,7 +1068,7 @@
 <script>
 const DAYS_7 = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
 const PAGE_SIZE = 10;
-const MAX_GITHUB_FILE_BYTES = 50 * 1024 * 1024; // 50 MB limit per single file via browser API
+const MAX_GITHUB_FILE_BYTES = 50 * 1024 * 1024;
 
 const DEFAULT_DATA = {
   channels: [
@@ -1087,7 +1091,7 @@ const DEFAULT_DATA = {
   stories: []
 };
 
-let ghConfig = { owner: "", repo: "", branch: "main", token: "" };
+let ghConfig = { owner: "basjk7130", repo: "my-youtube-data", branch: "main", token: "" };
 let currentJsonSha = null;
 let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
 
@@ -1097,10 +1101,31 @@ let activeStoryId = null;
 let autoSaveTimer = null;
 let activeSchedDay = null;
 let batchQueuedFiles = [];
-const mediaBlobCache = {}; // path -> { blob, url }
+const mediaBlobCache = {};
 
-// ================= GITHUB API ENGINE =================
+// ================= GITHUB API & MAGIC AUTO-LOGIN LINK =================
 function loadGitHubConfig() {
+  // 1. ตรวจสอบลิงก์เข้าสู่ระบบอัตโนมัติจาก URL Hash (#connect=...)
+  if (window.location.hash && window.location.hash.startsWith("#connect=")) {
+    try {
+      const encoded = decodeURIComponent(window.location.hash.slice("#connect=".length));
+      const parsed = JSON.parse(base64ToUtf8(encoded));
+      if (parsed && parsed.token) {
+        ghConfig = {
+          owner: parsed.owner || "basjk7130",
+          repo: parsed.repo || "my-youtube-data",
+          branch: parsed.branch || "main",
+          token: parsed.token
+        };
+        localStorage.setItem("yt_gh_cloud_cfg", JSON.stringify(ghConfig));
+        // ซ่อนรหัสออกจากแถบ URL ด้านบนเพื่อความปลอดภัย
+        history.replaceState(null, "", window.location.pathname + window.location.search);
+        return;
+      }
+    } catch (e) {}
+  }
+
+  // 2. โหลดค่าจากหน่วยความจำเบราว์เซอร์
   try {
     const saved = localStorage.getItem("yt_gh_cloud_cfg");
     if (saved) ghConfig = { ...ghConfig, ...JSON.parse(saved) };
@@ -1111,9 +1136,27 @@ function isGitHubConfigured() {
   return Boolean(ghConfig.owner && ghConfig.repo && ghConfig.token);
 }
 
+function updateMagicLinkButtonVisibility() {
+  const btn = document.getElementById("copyMagicLinkBtn");
+  if (btn) btn.style.display = isGitHubConfigured() ? "inline-flex" : "none";
+}
+
+function copyMagicLoginLink() {
+  if (!isGitHubConfigured()) {
+    alert("กรุณากรอกข้อมูลเชื่อมต่อ GitHub และกดบันทึกก่อนครับ");
+    return;
+  }
+  const payload = utf8ToBase64(JSON.stringify(ghConfig));
+  const baseUrl = window.location.origin + window.location.pathname;
+  const magicUrl = `${baseUrl}#connect=${encodeURIComponent(payload)}`;
+  navigator.clipboard.writeText(magicUrl).then(() => {
+    alert("คัดลอกลิงก์เข้าสู่ระบบอัตโนมัติแล้ว!\n\nนำลิงก์นี้ไปเปิดในเบราว์เซอร์อื่น มือถือ หรือคอมที่บ้าน แล้วกดบุ๊กมาร์ก (รูปดาว) เก็บไว้ จะเข้าใช้งานได้ทันทีโดยไม่ต้องกรอกรหัสซ้ำครับ");
+  });
+}
+
 function openGitHubConfigModal() {
-  document.getElementById("ghOwnerInput").value = ghConfig.owner || "";
-  document.getElementById("ghRepoInput").value = ghConfig.repo || "";
+  document.getElementById("ghOwnerInput").value = ghConfig.owner || "basjk7130";
+  document.getElementById("ghRepoInput").value = ghConfig.repo || "my-youtube-data";
   document.getElementById("ghBranchInput").value = ghConfig.branch || "main";
   document.getElementById("ghTokenInput").value = ghConfig.token || "";
   document.getElementById("githubConfigModal").classList.add("open");
@@ -1134,14 +1177,16 @@ async function saveGitHubConfig() {
     return;
   }
   localStorage.setItem("yt_gh_cloud_cfg", JSON.stringify(ghConfig));
+  updateMagicLinkButtonVisibility();
   closeGitHubConfigModal();
   await syncFromGitHub(true);
 }
 
 function disconnectGitHub() {
   localStorage.removeItem("yt_gh_cloud_cfg");
-  ghConfig = { owner: "", repo: "", branch: "main", token: "" };
+  ghConfig = { owner: "basjk7130", repo: "my-youtube-data", branch: "main", token: "" };
   currentJsonSha = null;
+  updateMagicLinkButtonVisibility();
   setSaveStatus("offline", "🔴 ยกเลิกการเชื่อมต่อ GitHub แล้ว");
   closeGitHubConfigModal();
 }
@@ -1198,7 +1243,6 @@ async function syncFromGitHub(showAlertOnSuccess = false) {
   try {
     const res = await githubRequest(`stories_data.json?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
     if (res.status === 404) {
-      // สร้างไฟล์ stories_data.json เริ่มต้นบน GitHub ให้อัตโนมัติ
       currentJsonSha = null;
       await persistData();
       renderAll();
@@ -1221,6 +1265,7 @@ async function syncFromGitHub(showAlertOnSuccess = false) {
       stories: parsed.stories || []
     };
 
+    updateMagicLinkButtonVisibility();
     setSaveStatus("saved", `🟢 ซิงก์ GitHub แล้ว (${ghConfig.repo})`);
     renderAll();
     if (activeStoryId) {
@@ -1261,7 +1306,6 @@ async function persistData() {
   try {
     let res = await putJson(currentJsonSha);
     if (res.status === 409 || res.status === 422) {
-      // ดึง SHA ล่าสุดแล้วลองบันทึกซ้ำอัตโนมัติ
       const latest = await githubRequest(`stories_data.json?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
       if (latest.ok) {
         const latestJson = await latest.json();
@@ -1285,9 +1329,7 @@ async function persistData() {
 }
 
 async function fetchPrivateMediaBlob(mediaPath) {
-  if (mediaBlobCache[mediaPath]) {
-    return mediaBlobCache[mediaPath];
-  }
+  if (mediaBlobCache[mediaPath]) return mediaBlobCache[mediaPath];
   const res = await githubRequest(`${mediaPath}?ref=${encodeURIComponent(ghConfig.branch)}`, {
     headers: { "Accept": "application/vnd.github.raw" }
   });
@@ -1298,9 +1340,10 @@ async function fetchPrivateMediaBlob(mediaPath) {
   return mediaBlobCache[mediaPath];
 }
 
-// ================= INITIALIZATION =================
+// ================= INITIALIZATION (NO BLOCKING POPUP) =================
 async function initApp() {
   loadGitHubConfig();
+  updateMagicLinkButtonVisibility();
   setupDropzone();
   setupBatchDropzone();
 
@@ -1311,8 +1354,8 @@ async function initApp() {
     if (cached) {
       try { appData = JSON.parse(cached); } catch (e) {}
     }
+    // เข้าหน้าหลักทันทีโดยไม่เปิดป๊อปอัพบังหน้าจอ
     renderAll();
-    openGitHubConfigModal();
   }
 }
 
@@ -1473,7 +1516,6 @@ function renderBatchPreviewTable() {
   btnFoot.disabled = false;
 }
 
-// Pure-JS Zero-Dependency ZIP Builder
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
   for (let i = 0; i < 256; i++) {
@@ -2082,18 +2124,16 @@ async function uploadMediaFilesToGitHub(files) {
   if (!story.images) story.images = [];
 
   if (!isGitHubConfigured()) {
-    alert("กรุณากดปุ่ม '☁️ เชื่อมต่อ GitHub' ด้านบนเพื่อตั้งค่าก่อนอัปโหลดไฟล์ครับ");
+    alert("กรุณากดปุ่ม '☁️ เชื่อมต่อ GitHub' ด้านบนเพื่อใส่รหัส Token ก่อนอัปโหลดไฟล์ครับ");
     openGitHubConfigModal();
     return;
   }
 
-  // เรียงตามวันที่จาก เก่าสุด -> ล่าสุด
   files.sort((a, b) => {
     if (a.lastModified !== b.lastModified) return a.lastModified - b.lastModified;
     return a.name.localeCompare(b.name, undefined, { numeric: true });
   });
 
-  // หาเลขลำดับถัดไปจากชื่อไฟล์เดิมในเรื่อง
   let maxSeq = 0;
   for (const existingPath of story.images) {
     const base = existingPath.split("/").pop().split(".")[0];
@@ -2131,7 +2171,6 @@ async function uploadMediaFilesToGitHub(files) {
         throw new Error(err.message || `HTTP ${res.status}`);
       }
 
-      // เก็บลงแคชทันทีเพื่อแสดงภาพตัวอย่างโดยไม่ต้องโหลดซ้ำ
       mediaBlobCache[repoPath] = { blob: file, url: URL.createObjectURL(file) };
       story.images.push(repoPath);
     } catch (err) {
@@ -2185,7 +2224,6 @@ function renderStoryGallery(story) {
     `;
   }).join("");
 
-  // โหลดภาพตัวอย่างจาก Private Repo แบบเบื้องหลัง
   media.forEach((mediaPath, idx) => {
     if (mediaBlobCache[mediaPath]) return;
     const isVid = isVideoFile(mediaPath);
