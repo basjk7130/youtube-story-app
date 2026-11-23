@@ -1207,7 +1207,6 @@
   <img id="lightboxImg" src="" alt="Preview" style="display:none;">
   <video id="lightboxVideo" src="" controls autoplay style="display:none;"></video>
 </div>
-
 <script>
 const DAYS_7 = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"];
 const PAGE_SIZE = 10;
@@ -1380,6 +1379,40 @@ async function githubRequest(path, options = {}) {
   return fetch(url, { ...options, headers, cache: "no-store" });
 }
 
+async function fetchFileShaFromRoot(filename) {
+  const dirRes = await githubRequest(`?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
+  if (!dirRes.ok) return null;
+  const list = await dirRes.json();
+  if (!Array.isArray(list)) return null;
+  const target = list.find(item => item && item.name === filename);
+  return target ? target.sha : null;
+}
+
+async function fetchBlobTextBySha(sha) {
+  const blobUrl = `https://api.github.com/repos/${encodeURIComponent(ghConfig.owner)}/${encodeURIComponent(ghConfig.repo)}/git/blobs/${sha}`;
+  const blobRes = await fetch(blobUrl, {
+    headers: {
+      "Authorization": `Bearer ${ghConfig.token}`,
+      "Accept": "application/vnd.github.raw"
+    },
+    cache: "no-store"
+  });
+  if (!blobRes.ok) {
+    throw new Error(`โหลดข้อมูลไฟล์ขนาดใหญ่ไม่สำเร็จ (HTTP ${blobRes.status})`);
+  }
+  return await blobRes.text();
+}
+
+async function fetchRepoFileText(jsonMeta) {
+  if (jsonMeta.content && jsonMeta.encoding === "base64") {
+    return base64ToUtf8(jsonMeta.content);
+  }
+  if (jsonMeta.sha) {
+    return await fetchBlobTextBySha(jsonMeta.sha);
+  }
+  return "";
+}
+
 async function syncFromGitHub(showAlertOnSuccess = false) {
   if (!isGitHubConfigured()) {
     setSaveStatus("offline", "🔴 กดปุ่ม '☁️ เชื่อมต่อ GitHub' เพื่อซิงก์ออนไลน์");
@@ -1390,31 +1423,76 @@ async function syncFromGitHub(showAlertOnSuccess = false) {
   setSaveStatus("saving", "⏳ กำลังดึงข้อมูลจาก GitHub...");
   try {
     const res = await githubRequest(`stories_data.json?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
+
     if (res.status === 404) {
+      const repoCheck = await fetch(
+        `https://api.github.com/repos/${encodeURIComponent(ghConfig.owner)}/${encodeURIComponent(ghConfig.repo)}`,
+        {
+          headers: {
+            "Authorization": `Bearer ${ghConfig.token}`,
+            "Accept": "application/vnd.github+json"
+          },
+          cache: "no-store"
+        }
+      );
+      if (!repoCheck.ok) {
+        throw new Error(`ไม่พบคลัง ${ghConfig.owner}/${ghConfig.repo} หรือ Token ไม่มีสิทธิ์เข้าถึงคลังนี้ (HTTP ${repoCheck.status})`);
+      }
+
       currentJsonSha = null;
-      await persistData();
+      const saveResult = await persistData();
+      if (!saveResult.ok) {
+        throw new Error(`สร้างไฟล์ stories_data.json ไม่สำเร็จ: ${saveResult.error || "กรุณาตรวจสอบสิทธิ์ Token (Contents: Read and write)"}`);
+      }
       renderAll();
       if (showAlertOnSuccess) alert("เชื่อมต่อสำเร็จ! สร้างฐานข้อมูลใหม่บน GitHub เรียบร้อยแล้วครับ");
       return;
     }
 
     const rawText = await res.text();
-    if (!rawText || !rawText.trim()) {
-      throw new Error("GitHub ส่งข้อมูลกลับมาเป็นค่าว่าง กรุณาตรวจสอบว่า Token มีสิทธิ์เข้าถึงคลัง Private และชื่อคลังถูกต้อง");
-    }
+    let decoded = "";
 
-    const json = JSON.parse(rawText);
     if (!res.ok) {
-      throw new Error(json.message || `HTTP ${res.status}`);
+      let errJson = null;
+      try { errJson = JSON.parse(rawText); } catch (e) {}
+
+      // กรณีไฟล์ stories_data.json ใหญ่เกิน 1 MB และ GitHub ตอบ 403 too_large
+      const isTooLarge = res.status === 403 && errJson && Array.isArray(errJson.errors) &&
+        errJson.errors.some(e => e && e.code === "too_large");
+
+      if (isTooLarge) {
+        const sha = await fetchFileShaFromRoot("stories_data.json");
+        if (!sha) {
+          throw new Error("ไม่พบ SHA ของไฟล์ stories_data.json (ไฟล์เกิน 1 MB)");
+        }
+        currentJsonSha = sha;
+        decoded = await fetchBlobTextBySha(sha);
+      } else {
+        const msg = (errJson && errJson.message)
+          ? `${errJson.message} (HTTP ${res.status})`
+          : `HTTP ${res.status}`;
+        throw new Error(msg);
+      }
+    } else {
+      if (!rawText || !rawText.trim()) {
+        throw new Error(`GitHub ส่งข้อมูลกลับมาเป็นค่าว่าง (HTTP ${res.status})`);
+      }
+      const json = JSON.parse(rawText);
+      currentJsonSha = json.sha;
+      decoded = await fetchRepoFileText(json);
     }
 
-    currentJsonSha = json.sha;
-    const decoded = json.content ? base64ToUtf8(json.content) : "";
-    if (!decoded.trim()) {
-      throw new Error("เนื้อหาในไฟล์ stories_data.json บน GitHub เป็นค่าว่าง");
+    if (!decoded || !decoded.trim()) {
+      throw new Error("ไฟล์ stories_data.json บน GitHub ว่างเปล่า กรุณาลบไฟล์ว่างในคลังออกแล้วกดเชื่อมต่อใหม่");
     }
 
-    const parsed = JSON.parse(decoded);
+    let parsed;
+    try {
+      parsed = JSON.parse(decoded);
+    } catch (parseErr) {
+      throw new Error("ไฟล์ stories_data.json บน GitHub มีโครงสร้าง JSON เสียหาย: " + parseErr.message);
+    }
+
     appData = {
       channels: parsed.channels || DEFAULT_DATA.channels,
       schedule: parsed.schedule || DEFAULT_DATA.schedule,
@@ -1442,7 +1520,7 @@ async function persistData() {
   localStorage.setItem("yt_story_cloud_cache", JSON.stringify(appData));
   if (!isGitHubConfigured()) {
     setSaveStatus("offline", "🔴 ยังไม่ได้เชื่อมต่อ GitHub (บันทึกชั่วคราวในเครื่อง)");
-    return;
+    return { ok: false, error: "ยังไม่ได้ตั้งค่า GitHub" };
   }
 
   setSaveStatus("saving", "⏳ กำลังบันทึกขึ้น GitHub...");
@@ -1466,36 +1544,53 @@ async function persistData() {
     try {
       let res = await putJson(currentJsonSha);
       if (res.status === 409 || res.status === 422) {
+        let latestSha = null;
         const latest = await githubRequest(`stories_data.json?ref=${encodeURIComponent(ghConfig.branch)}&t=${Date.now()}`);
         if (latest.ok) {
           const latestJson = await latest.json();
-          currentJsonSha = latestJson.sha;
+          latestSha = latestJson.sha;
+        } else {
+          latestSha = await fetchFileShaFromRoot("stories_data.json");
+        }
+        if (latestSha) {
+          currentJsonSha = latestSha;
           res = await putJson(currentJsonSha);
         }
       }
-      if (res.status === 403 || res.status === 429) {
+      if (res.status === 429) {
         await sleep(2500 * attempt);
         continue;
       }
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || `HTTP ${res.status}`);
+        const msg = errData.message || `HTTP ${res.status}`;
+        // หากเป็น 403 เพราะสิทธิ์ไม่พอ ไม่ต้องวนรอซ้ำ
+        if (res.status === 403 && !/rate limit/i.test(msg)) {
+          throw new Error(`${msg} (HTTP 403)`);
+        }
+        if (res.status === 403 && attempt < 3) {
+          await sleep(2500 * attempt);
+          continue;
+        }
+        throw new Error(`${msg} (HTTP ${res.status})`);
       }
       const saved = await res.json();
       currentJsonSha = saved.content && saved.content.sha ? saved.content.sha : currentJsonSha;
       setSaveStatus("saved", "🟢 บันทึกขึ้น GitHub เรียบร้อย");
       const hint = document.getElementById("modalAutoSaveHint");
       if (hint) hint.textContent = "✓ บันทึกขึ้น GitHub แล้ว (" + new Date().toLocaleTimeString("th-TH") + ")";
-      return;
+      return { ok: true };
     } catch (err) {
-      if (attempt === 3) {
+      if (attempt === 3 || /HTTP 403|HTTP 401|HTTP 404/.test(err.message)) {
         setSaveStatus("offline", "⚠️ บันทึกขึ้น GitHub ขัดข้อง");
         console.error(err);
+        return { ok: false, error: err.message };
       } else {
         await sleep(1500);
       }
     }
   }
+  return { ok: false, error: "ไม่สามารถบันทึกขึ้น GitHub ได้" };
 }
 
 async function fetchPrivateMediaBlob(mediaPath) {
